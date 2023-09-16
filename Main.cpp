@@ -257,13 +257,13 @@ void UCreateMesh(GLMesh& mesh)
 {
     const int height = 1;
     const int rad = 1;
-    const int sides = 60;
+    const int sides = 3;
     // Position and Color data
     GLfloat verts[(sides + 1)*7*2];
     GeneratePrismVertices(verts, rad, height, sides);
 
     // Index data to share position data
-    GLushort indices[sides*3*2];
+    GLushort indices[sides*12];
     GeneratePrismIndices(indices, sides);
 
     const GLuint floatsPerVertex = 3;
@@ -431,7 +431,7 @@ void GeneratePrismVertices(GLfloat verts[], int rad, int height, int sides) {
 
 void GeneratePrismIndices(GLushort* indices, int sides) {
     std::vector<GLushort> prismData;
-    // create top
+    // create top and bottom
     int vert = (sides + 1) * 2;
     for (int i = 2; i < vert; i++) {
         if (i == 2) {
@@ -447,7 +447,18 @@ void GeneratePrismIndices(GLushort* indices, int sides) {
             prismData.insert(prismData.end(), { 1, static_cast<GLushort>(i), static_cast<GLushort>(i - 2) });
         }
     }
-    
+    // create sides
+    for (int i = 2; i < vert; i++) {
+        if (i == 2) {
+            prismData.insert(prismData.end(), { 2, static_cast<GLushort>(vert-2), static_cast<GLushort>(vert-1) });
+        }
+        else if (i == 3) {
+            prismData.insert(prismData.end(), { 2, 3, static_cast<GLushort>(vert - 1) });
+        }
+        else {
+            prismData.insert(prismData.end(), { static_cast<GLushort>(i), static_cast<GLushort>(i-1), static_cast<GLushort>(i-2) });
+        }
+    }
     for (size_t i = 0; i < prismData.size(); i++) {
         indices[i] = prismData[i];
     }
