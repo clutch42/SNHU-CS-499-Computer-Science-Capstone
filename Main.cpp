@@ -37,6 +37,7 @@ namespace
         GLuint vao;         // Handle for the vertex array object
         GLuint vbos[2];     // Handles for the vertex buffer objects
         GLuint nIndices;    // Number of indices of the mesh
+        GLuint nVertex;     // number of vertex
     };
 
     // Main GLFW window
@@ -47,6 +48,13 @@ namespace
     vector<GLMesh> meshs;
     // Shader program
     GLuint gProgramId;
+
+    const int prismRad = 1;
+    const int prismHeight = 1;
+    const int prismSides = 8;
+
+    GLfloat vertexData[(prismSides + 1) * 2 * 7];
+    GLuint indexData[prismSides*12];
 }
 
 /* User-defined Function prototypes to:
@@ -62,8 +70,8 @@ void UDestroyMesh(GLMesh& mesh);
 void URender();
 bool UCreateShaderProgram(const char* vtxShaderSource, const char* fragShaderSource, GLuint& programId);
 void UDestroyShaderProgram(GLuint programId);
-void GeneratePrismVertices(GLfloat verts[], GLfloat rad, GLfloat height, int sides);
-void GeneratePrismIndices(GLushort* indices, int sides);
+void GeneratePrismVertices();
+void GeneratePrismIndices();
 
 /* Vertex Shader Source Code*/
 const GLchar* vertexShaderSource = GLSL(440,
@@ -102,13 +110,18 @@ int main(int argc, char* argv[])
 {
     if (!UInitialize(argc, argv, &gWindow))
         return EXIT_FAILURE;
-
     GLMesh tempMesh;
-
-    // Create the mesh
+    GeneratePrismVertices();
+    GeneratePrismIndices();
     UCreateMesh(tempMesh); // Calls the function to create the Vertex Buffer Object
     meshs.push_back(tempMesh);
+    //UCreateMesh(tempMesh); // Calls the function to create the Vertex Buffer Object
+    //meshs.push_back(tempMesh);
 
+    for (const GLMesh& mesh : meshs) {
+        //cout << mesh.vao << endl;
+        //cout << mesh.vbos[0] << " " << mesh.vbos[1] << endl;
+    }
 
     // Create the shader program
     if (!UCreateShaderProgram(vertexShaderSource, fragmentShaderSource, gProgramId))
@@ -130,7 +143,7 @@ int main(int argc, char* argv[])
 
         glfwPollEvents();
     }
-    for (auto mesh : meshs) {
+    for (GLMesh mesh : meshs) {
         // Release mesh data
         UDestroyMesh(mesh);
     }
@@ -211,49 +224,30 @@ void URender()
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // Set the shader to be used
+    glUseProgram(gProgramId);
+
+    // Activate the VBOs contained within the mesh's VAO
+    glBindVertexArray(meshs.at(0).vao);
+
     // I scaled, then translated, then rotated each of the cylinders seperately
-    glm::mat4 largerPrismModel = glm::rotate(1.8f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
-    glm::mat4 smallerPrismModel = glm::rotate(1.8f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, -0.82f)) * glm::scale(glm::vec3(0.41f, 0.41f, 0.82f));
-    // playing around creating an extra cylinder
-    //glm::mat4 mediumPrismModel = glm::rotate(1.8f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(2.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(0.7f, 0.7f, 3.0f));
-    // Transforms the camera: move the camera back (z axis) and up (y axis)
+    glm::mat4 model = glm::rotate(1.8f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
     glm::mat4 view = glm::translate(glm::vec3(0.0f, 1.0f, -12.0f));
 
     // Creates a perspective projection
     glm::mat4 projection = glm::perspective(45.0f, (GLfloat)WINDOW_WIDTH / (GLfloat)WINDOW_HEIGHT, 0.1f, 100.0f);
-
-    // Set the shader to be used
-    glUseProgram(gProgramId);
 
     // Retrieves and passes transform matrices to the Shader program
     GLint modelLoc = glGetUniformLocation(gProgramId, "model");
     GLint viewLoc = glGetUniformLocation(gProgramId, "view");
     GLint projLoc = glGetUniformLocation(gProgramId, "projection");
 
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(largerPrismModel));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-
-    for (GLMesh mesh : meshs) {
-        // Activate the VBOs contained within the mesh's VAO
-        glBindVertexArray(mesh.vao);
-
-        // Draws the triangles
-        glDrawElements(GL_TRIANGLES, mesh.nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
-    }
-    // Render the smaller prism
-    //glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(smallerPrismModel));
-
-    // Draws the smaller prism
-    //glDrawElements(GL_TRIANGLES, gMesh.nIndices, GL_UNSIGNED_SHORT, nullptr);
-
-    // Render the medium prism
-    //glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(mediumPrismModel));
-    // playing around creating a third cylinder
-    // Draws the medium prism
-    //glDrawElements(GL_TRIANGLES, gMesh.nIndices, GL_UNSIGNED_SHORT, nullptr);
-
+    // Draws the triangles
+    glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
     // Deactivate the Vertex Array Object
     glBindVertexArray(0);
 
@@ -265,34 +259,29 @@ void URender()
 // Implements the UCreateMesh function
 void UCreateMesh(GLMesh& mesh)
 {
-    // Define vertices and indices for the prism
-    const GLfloat prismHeight = 1.0f;
-    const GLfloat prismRad = 1.0f;
-    const int prismSides = 60;
-    GLfloat prismVerts[(prismSides + 1) * 7 * 2];
-    GLushort prismIndices[prismSides * 12];
-    // created my own functions for the vertices and indices
-    GeneratePrismVertices(prismVerts, prismRad, prismHeight, prismSides);
-    GeneratePrismIndices(prismIndices, prismSides);
+    const GLuint floatsPerVertex = 3;
+    const GLuint floatsPerColor = 4;
 
     glGenVertexArrays(1, &mesh.vao);
     glBindVertexArray(mesh.vao);
-    size_t prismVertsSize = (prismSides + 1) * 7 * 2 * sizeof(GLfloat);
-    // Create a single buffer for the combined vertex data
-    glGenBuffers(1, &mesh.vbos[0]);
+
+    for (auto i : indexData) {
+        cout << i << endl;
+    }
+
+    mesh.nIndices = sizeof(indexData) / sizeof(indexData[0]);
+    mesh.nVertex = sizeof(vertexData) / sizeof(vertexData[0]) / 7;
+    //cout << "nIndices: " << mesh.nIndices << endl;
+    //cout << "vertex: " << mesh.nVertex << endl;
+
+    glGenBuffers(2, mesh.vbos);
     glBindBuffer(GL_ARRAY_BUFFER, mesh.vbos[0]);
-    glBufferData(GL_ARRAY_BUFFER, prismVertsSize, prismVerts, GL_STATIC_DRAW);
-
-    // Create a single buffer for the combined index data
-    size_t numIndices = sizeof(prismIndices) / sizeof(prismIndices[0]);
-    mesh.nIndices = sizeof(prismIndices);
-    glGenBuffers(1, &mesh.vbos[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * mesh.nVertex * 7, vertexData, GL_STATIC_DRAW);
+   
+    
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.vbos[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLushort), prismIndices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * mesh.nIndices, indexData, GL_STATIC_DRAW);
 
-
-    const GLuint floatsPerVertex = 3;
-    const GLuint floatsPerColor = 4;
 
     // Strides between vertex coordinates is 7 (x, y, z, r, g, b, a). A tightly packed stride is 0.
     GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor);// The number of floats before each
@@ -301,8 +290,10 @@ void UCreateMesh(GLMesh& mesh)
     glVertexAttribPointer(0, floatsPerVertex, GL_FLOAT, GL_FALSE, stride, 0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, floatsPerColor, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(float) * floatsPerVertex));
+    glVertexAttribPointer(1, floatsPerColor, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * floatsPerVertex));
     glEnableVertexAttribArray(1);
+
+
 }
 
 
@@ -382,17 +373,18 @@ void UDestroyShaderProgram(GLuint programId)
 
 // I created this function to automate the vertex positions for a prism with differing radius, height, and sides
 // and assign it one of 6 colors unless it is the center top which is white, or center botttom which is black
-void GeneratePrismVertices(GLfloat verts[], GLfloat rad, GLfloat height, int sides) {
-    std::vector<GLfloat> prismData;
+void GeneratePrismVertices() {
+    
+    vector<GLfloat> prismData;
     const int numColors = 6;
     prismData.insert(prismData.end(), { 0.0f, 0.0f, 0.0f, 1.0f,1.0f,1.0f,1.0f });
-    prismData.insert(prismData.end(), { 0.0f, 0.0f, height, 0.0f,0.0f,0.0f,1.0f });
-    for (int i = 0; i < sides; ++i) {
-        float theta = 2.0f * M_PI * static_cast<float>(i) / sides;
-        float x = rad * cos(theta);
-        float y = rad * sin(theta);
-        prismData.push_back(x);
-        prismData.push_back(y);
+    prismData.insert(prismData.end(), { 0.0f, 0.0f, prismHeight, 0.0f,0.0f,0.0f,1.0f });
+    for (int i = 0; i < prismSides; ++i) {
+        GLfloat theta = 2.0f * M_PI * static_cast<float>(i) / prismSides;
+        GLfloat x = prismRad * cos(theta);
+        GLfloat y = prismRad * sin(theta);
+        prismData.push_back((x));
+        prismData.push_back((y));
         prismData.push_back(0.0f);
 
         // Assign colors with alpha to vertices based on the segment
@@ -418,7 +410,7 @@ void GeneratePrismVertices(GLfloat verts[], GLfloat rad, GLfloat height, int sid
         }
         prismData.push_back(x);
         prismData.push_back(y);
-        prismData.push_back(static_cast<GLfloat>(height));
+        prismData.push_back(static_cast<GLfloat>(prismHeight));
         if (colorIndex == 0) {
             prismData.insert(prismData.end(), { 1.0f, 0.0f, 0.0f, 1.0f });
         }
@@ -438,17 +430,23 @@ void GeneratePrismVertices(GLfloat verts[], GLfloat rad, GLfloat height, int sid
             prismData.insert(prismData.end(), { 1.0f, 0.0f, 1.0f, 1.0f });
         }
     }
-    for (size_t i = 0; i < prismData.size(); i++)
-    {
-        verts[i] = prismData[i];
+
+    for (int i = 0; i < prismData.size(); i++) {
+        vertexData[i] = prismData[i];
+    }
+
+    for (auto v : vertexData) {
+        //cout << v << endl;
     }
 }
 
+
+
 // I created this function to get indices for the prism
-void GeneratePrismIndices(GLushort* indices, int sides) {
-    std::vector<GLushort> prismData;
+void GeneratePrismIndices() {
+    std::vector<GLuint> prismData;
     // create top and bottom
-    int vert = (sides + 1) * 2;
+    int vert = (prismSides + 1) * 2;
     for (int i = 2; i < vert; i++) {
         if (i == 2) {
             prismData.insert(prismData.end(), { 0, static_cast<GLushort>(i), static_cast<GLushort>(vert - 2) });
@@ -475,7 +473,9 @@ void GeneratePrismIndices(GLushort* indices, int sides) {
             prismData.insert(prismData.end(), { static_cast<GLushort>(i), static_cast<GLushort>(i - 1), static_cast<GLushort>(i - 2) });
         }
     }
-    for (size_t i = 0; i < prismData.size(); i++) {
-        indices[i] = prismData[i];
+
+    
+    for (int i = 0; i < prismData.size(); i++) {
+        indexData[i] = prismData[i];
     }
 }
