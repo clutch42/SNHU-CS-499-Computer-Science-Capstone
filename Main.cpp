@@ -32,12 +32,12 @@ namespace
     const int WINDOW_HEIGHT = 600;
 
     // Stores the GL data relative to a given mesh
-    struct GLMesh
+    /*struct GLMesh
     {
         GLuint vao;         // Handle for the vertex array object
         GLuint vbos[2];     // Handles for the vertex buffer objects
         GLuint nIndices;    // Number of indices of the mesh
-    };
+    };*/
 
     // Main GLFW window
     GLFWwindow* gWindow = nullptr;
