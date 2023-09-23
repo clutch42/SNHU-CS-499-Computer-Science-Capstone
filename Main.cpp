@@ -42,7 +42,9 @@ namespace
     // Main GLFW window
     GLFWwindow* gWindow = nullptr;
     // Triangle mesh data
-    GLMesh gMesh;
+    //GLMesh gMesh;
+    // vector of all meshs
+    vector<GLMesh> meshs;
     // Shader program
     GLuint gProgramId;
 }
@@ -101,8 +103,12 @@ int main(int argc, char* argv[])
     if (!UInitialize(argc, argv, &gWindow))
         return EXIT_FAILURE;
 
+    GLMesh tempMesh;
+
     // Create the mesh
-    UCreateMesh(gMesh); // Calls the function to create the Vertex Buffer Object
+    UCreateMesh(tempMesh); // Calls the function to create the Vertex Buffer Object
+    meshs.push_back(tempMesh);
+
 
     // Create the shader program
     if (!UCreateShaderProgram(vertexShaderSource, fragmentShaderSource, gProgramId))
@@ -124,10 +130,10 @@ int main(int argc, char* argv[])
 
         glfwPollEvents();
     }
-
-    // Release mesh data
-    UDestroyMesh(gMesh);
-
+    for (auto mesh : meshs) {
+        // Release mesh data
+        UDestroyMesh(mesh);
+    }
     // Release shader program
     UDestroyShaderProgram(gProgramId);
 
@@ -228,17 +234,19 @@ void URender()
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-    // Activate the VBOs contained within the mesh's VAO
-    glBindVertexArray(gMesh.vao);
 
-    // Draws the triangles
-    glDrawElements(GL_TRIANGLES, gMesh.nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    for (GLMesh mesh : meshs) {
+        // Activate the VBOs contained within the mesh's VAO
+        glBindVertexArray(mesh.vao);
 
+        // Draws the triangles
+        glDrawElements(GL_TRIANGLES, mesh.nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    }
     // Render the smaller prism
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(smallerPrismModel));
+    //glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(smallerPrismModel));
 
     // Draws the smaller prism
-    glDrawElements(GL_TRIANGLES, gMesh.nIndices, GL_UNSIGNED_SHORT, nullptr);
+    //glDrawElements(GL_TRIANGLES, gMesh.nIndices, GL_UNSIGNED_SHORT, nullptr);
 
     // Render the medium prism
     //glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(mediumPrismModel));
