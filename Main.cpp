@@ -73,6 +73,7 @@ void UDestroyShaderProgram(GLuint programId);
 void GeneratePrismVertices();
 void GeneratePrismIndices();
 
+
 /* Vertex Shader Source Code*/
 const GLchar* vertexShaderSource = GLSL(440,
     layout(location = 0) in vec3 position; // Vertex data from Vertex Attrib Pointer 0
@@ -234,6 +235,9 @@ void URender()
     glm::mat4 model = glm::rotate(1.8f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
     glm::mat4 view = glm::translate(glm::vec3(0.0f, 1.0f, -12.0f));
 
+    // Transforms the camera: move the camera back (z axis)
+    glm::mat4 view = glm::translate(glm::vec3(0.0f, 0.0f, -10.0f));
+
     // Creates a perspective projection
     glm::mat4 projection = glm::perspective(45.0f, (GLfloat)WINDOW_WIDTH / (GLfloat)WINDOW_HEIGHT, 0.1f, 100.0f);
 
@@ -262,7 +266,7 @@ void UCreateMesh(GLMesh& mesh)
     const GLuint floatsPerVertex = 3;
     const GLuint floatsPerColor = 4;
 
-    glGenVertexArrays(1, &mesh.vao);
+    glGenVertexArrays(1, &mesh.vao); // we can also generate multiple VAOs or buffers at the same time
     glBindVertexArray(mesh.vao);
 
     for (auto i : indexData) {
@@ -283,7 +287,7 @@ void UCreateMesh(GLMesh& mesh)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * mesh.nIndices, indexData, GL_STATIC_DRAW);
 
 
-    // Strides between vertex coordinates is 7 (x, y, z, r, g, b, a). A tightly packed stride is 0.
+    // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
     GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor);// The number of floats before each
 
     // Create Vertex Attribute Pointers
@@ -391,10 +395,10 @@ void GeneratePrismVertices() {
         glm::vec4 color;
         int colorIndex = i % numColors;
         if (colorIndex == 0) {
-            prismData.insert(prismData.end(), { 1.0f, 0.0f, 0.0f, 1.0f });
+            prismData.insert(prismData.end(), { 1.0f, 0.0f, 0.0f, 1.0f }); 
         }
         else if (colorIndex == 1) {
-            prismData.insert(prismData.end(), { 0.0f, 1.0f, 0.0f, 1.0f });
+            prismData.insert(prismData.end(), { 0.0f, 1.0f, 0.0f, 1.0f }); 
         }
         else if (colorIndex == 2) {
             prismData.insert(prismData.end(), { 0.0f, 0.0f, 1.0f, 1.0f });
@@ -449,10 +453,10 @@ void GeneratePrismIndices() {
     int vert = (prismSides + 1) * 2;
     for (int i = 2; i < vert; i++) {
         if (i == 2) {
-            prismData.insert(prismData.end(), { 0, static_cast<GLushort>(i), static_cast<GLushort>(vert - 2) });
+            prismData.insert(prismData.end(), { 0, static_cast<GLushort>(i), static_cast<GLushort>(vert-2) });
         }
         else if (i == 3) {
-            prismData.insert(prismData.end(), { 1, static_cast<GLushort>(i), static_cast<GLushort>(vert - 1) });
+            prismData.insert(prismData.end(), { 1, static_cast<GLushort>(i), static_cast<GLushort>(vert-1) });
         }
         else if (i % 2 == 0) {
             prismData.insert(prismData.end(), { 0, static_cast<GLushort>(i), static_cast<GLushort>(i - 2) });
@@ -464,13 +468,13 @@ void GeneratePrismIndices() {
     // create sides
     for (int i = 2; i < vert; i++) {
         if (i == 2) {
-            prismData.insert(prismData.end(), { 2, static_cast<GLushort>(vert - 2), static_cast<GLushort>(vert - 1) });
+            prismData.insert(prismData.end(), { 2, static_cast<GLushort>(vert-2), static_cast<GLushort>(vert-1) });
         }
         else if (i == 3) {
             prismData.insert(prismData.end(), { 2, 3, static_cast<GLushort>(vert - 1) });
         }
         else {
-            prismData.insert(prismData.end(), { static_cast<GLushort>(i), static_cast<GLushort>(i - 1), static_cast<GLushort>(i - 2) });
+            prismData.insert(prismData.end(), { static_cast<GLushort>(i), static_cast<GLushort>(i-1), static_cast<GLushort>(i-2) });
         }
     }
 
