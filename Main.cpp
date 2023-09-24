@@ -37,7 +37,6 @@ namespace
         GLuint vao;         // Handle for the vertex array object
         GLuint vbos[2];     // Handles for the vertex buffer objects
         GLuint nIndices;    // Number of indices of the mesh
-        GLuint nVertex;     // number of vertex
     };
 
     // Main GLFW window
@@ -51,10 +50,12 @@ namespace
 
     const int prismRad = 1;
     const int prismHeight = 1;
-    const int prismSides = 8;
+    const int prismSides = 30;
 
-    GLfloat vertexData[(prismSides + 1) * 2 * 7];
-    GLuint indexData[prismSides*12];
+    GLfloat prismVertex[(prismSides + 1) * 2 * 7];
+    GLushort prismIndex[prismSides * 12];
+    GLfloat baseVertex[4*7];
+    GLushort baseIndex[6];
 }
 
 /* User-defined Function prototypes to:
@@ -65,13 +66,16 @@ namespace
 bool UInitialize(int, char* [], GLFWwindow** window);
 void UResizeWindow(GLFWwindow* window, int width, int height);
 void UProcessInput(GLFWwindow* window);
-void UCreateMesh(GLMesh& mesh);
+void UCreatePrismMesh(GLMesh& mesh);
+void UCreateBaseMesh(GLMesh& mesh);
 void UDestroyMesh(GLMesh& mesh);
 void URender();
 bool UCreateShaderProgram(const char* vtxShaderSource, const char* fragShaderSource, GLuint& programId);
 void UDestroyShaderProgram(GLuint programId);
 void GeneratePrismVertices();
 void GeneratePrismIndices();
+void GenerateBaseVertices();
+void GenerateBaseIndices();
 
 
 /* Vertex Shader Source Code*/
@@ -111,18 +115,18 @@ int main(int argc, char* argv[])
 {
     if (!UInitialize(argc, argv, &gWindow))
         return EXIT_FAILURE;
-    GLMesh tempMesh;
+    GLMesh cylinderMesh;
     GeneratePrismVertices();
     GeneratePrismIndices();
-    UCreateMesh(tempMesh); // Calls the function to create the Vertex Buffer Object
-    meshs.push_back(tempMesh);
-    //UCreateMesh(tempMesh); // Calls the function to create the Vertex Buffer Object
-    //meshs.push_back(tempMesh);
+    UCreatePrismMesh(cylinderMesh); // Calls the function to create the Vertex Buffer Object
+    meshs.push_back(cylinderMesh);
 
-    for (const GLMesh& mesh : meshs) {
-        //cout << mesh.vao << endl;
-        //cout << mesh.vbos[0] << " " << mesh.vbos[1] << endl;
-    }
+    GLMesh baseMesh;
+    GenerateBaseVertices();
+    GenerateBaseIndices();
+    UCreateBaseMesh(baseMesh);
+    meshs.push_back(baseMesh);
+    
 
     // Create the shader program
     if (!UCreateShaderProgram(vertexShaderSource, fragmentShaderSource, gProgramId))
@@ -228,15 +232,14 @@ void URender()
     // Set the shader to be used
     glUseProgram(gProgramId);
 
-    // Activate the VBOs contained within the mesh's VAO
-    glBindVertexArray(meshs.at(0).vao);
+    
 
     // I scaled, then translated, then rotated each of the cylinders seperately
     glm::mat4 model = glm::rotate(1.8f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
     glm::mat4 view = glm::translate(glm::vec3(0.0f, 1.0f, -12.0f));
 
     // Transforms the camera: move the camera back (z axis)
-    glm::mat4 view = glm::translate(glm::vec3(0.0f, 0.0f, -10.0f));
+    //glm::mat4 view = glm::translate(glm::vec3(0.0f, 0.0f, -10.0f));
 
     // Creates a perspective projection
     glm::mat4 projection = glm::perspective(45.0f, (GLfloat)WINDOW_WIDTH / (GLfloat)WINDOW_HEIGHT, 0.1f, 100.0f);
@@ -251,7 +254,13 @@ void URender()
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
     // Draws the triangles
-    glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+
+    for (const auto& mesh : meshs) {
+        // Activate the VBOs contained within the mesh's VAO
+        glBindVertexArray(mesh.vao);
+        glDrawElements(GL_TRIANGLES, mesh.nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    }
+
     // Deactivate the Vertex Array Object
     glBindVertexArray(0);
 
@@ -261,7 +270,7 @@ void URender()
 
 
 // Implements the UCreateMesh function
-void UCreateMesh(GLMesh& mesh)
+void UCreatePrismMesh(GLMesh& mesh)
 {
     const GLuint floatsPerVertex = 3;
     const GLuint floatsPerColor = 4;
@@ -269,22 +278,16 @@ void UCreateMesh(GLMesh& mesh)
     glGenVertexArrays(1, &mesh.vao); // we can also generate multiple VAOs or buffers at the same time
     glBindVertexArray(mesh.vao);
 
-    for (auto i : indexData) {
-        cout << i << endl;
-    }
-
-    mesh.nIndices = sizeof(indexData) / sizeof(indexData[0]);
-    mesh.nVertex = sizeof(vertexData) / sizeof(vertexData[0]) / 7;
-    //cout << "nIndices: " << mesh.nIndices << endl;
-    //cout << "vertex: " << mesh.nVertex << endl;
-
-    glGenBuffers(2, mesh.vbos);
+    size_t prismVertsSize = (prismSides + 1) * 7 * 2 * sizeof(GLfloat);
+    glGenBuffers(1, &mesh.vbos[0]);
     glBindBuffer(GL_ARRAY_BUFFER, mesh.vbos[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * mesh.nVertex * 7, vertexData, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, prismVertsSize, prismVertex, GL_STATIC_DRAW);
    
-    
+    size_t numIndices = sizeof(prismIndex) / sizeof(prismIndex[0]);
+    mesh.nIndices = sizeof(prismIndex);
+    glGenBuffers(1, &mesh.vbos[1]);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.vbos[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * mesh.nIndices, indexData, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * numIndices, prismIndex, GL_STATIC_DRAW);
 
 
     // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
@@ -298,6 +301,36 @@ void UCreateMesh(GLMesh& mesh)
     glEnableVertexAttribArray(1);
 
 
+}
+
+void UCreateBaseMesh(GLMesh& mesh) {
+    const GLuint floatsPerVertex = 3;
+    const GLuint floatsPerColor = 4;
+
+    glGenVertexArrays(1, &mesh.vao); // we can also generate multiple VAOs or buffers at the same time
+    glBindVertexArray(mesh.vao);
+
+    size_t baseVertsSize = 7 * 4 * sizeof(GLfloat);
+    glGenBuffers(1, &mesh.vbos[0]);
+    glBindBuffer(GL_ARRAY_BUFFER, mesh.vbos[0]);
+    glBufferData(GL_ARRAY_BUFFER, baseVertsSize, baseVertex, GL_STATIC_DRAW);
+
+    size_t numIndices = sizeof(baseIndex) / sizeof(baseIndex[0]);
+    mesh.nIndices = sizeof(baseIndex);
+    glGenBuffers(1, &mesh.vbos[1]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.vbos[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * numIndices, baseIndex, GL_STATIC_DRAW);
+
+
+    // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
+    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor);// The number of floats before each
+
+    // Create Vertex Attribute Pointers
+    glVertexAttribPointer(0, floatsPerVertex, GL_FLOAT, GL_FALSE, stride, 0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, floatsPerColor, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * floatsPerVertex));
+    glEnableVertexAttribArray(1);
 }
 
 
@@ -436,11 +469,7 @@ void GeneratePrismVertices() {
     }
 
     for (int i = 0; i < prismData.size(); i++) {
-        vertexData[i] = prismData[i];
-    }
-
-    for (auto v : vertexData) {
-        //cout << v << endl;
+        prismVertex[i] = prismData[i];
     }
 }
 
@@ -448,7 +477,7 @@ void GeneratePrismVertices() {
 
 // I created this function to get indices for the prism
 void GeneratePrismIndices() {
-    std::vector<GLuint> prismData;
+    std::vector<GLushort> prismData;
     // create top and bottom
     int vert = (prismSides + 1) * 2;
     for (int i = 2; i < vert; i++) {
@@ -480,6 +509,27 @@ void GeneratePrismIndices() {
 
     
     for (int i = 0; i < prismData.size(); i++) {
-        indexData[i] = prismData[i];
+        prismIndex[i] = prismData[i];
+    }
+}
+
+void GenerateBaseVertices() {
+    GLfloat values[] = {
+        10.0f, 0.0f,  10.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+       -10.0f, 0.0f,  10.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        10.0f, 0.0f, -10.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+       -10.0f, 0.0f, -10.0f, 1.0f, 1.0f, 1.0f, 1.0f
+    };
+    for (int i = 0; i < 4 * 7; i++) {
+        baseVertex[i] = values[i];
+    }
+}
+void GenerateBaseIndices() {
+    GLushort values[] = {
+        0, 1, 2,
+        1, 2, 3
+    };
+    for (int i = 0; i < 6; i++) {
+        baseIndex[i] = values[i];
     }
 }
