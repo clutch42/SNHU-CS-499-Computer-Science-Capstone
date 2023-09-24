@@ -60,7 +60,7 @@ namespace
     GLushort baseIndex[6];
 
     // camera positions
-    glm::vec3 gCameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+    glm::vec3 gCameraPos = glm::vec3(0.0f, 0.0f, 15.0f);
     glm::vec3 gCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 gCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -302,14 +302,11 @@ void URender()
     GLint projLoc = glGetUniformLocation(gProgramId, "projection");
 
     // I scaled, then translated, then rotated each of the cylinders seperately
-    glm::mat4 model = glm::rotate(1.8f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
+    glm::mat4 model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f));
     
     // updated to use the wasd keys to move
     glm::mat4 view = glm::lookAt(gCameraPos, gCameraPos + gCameraFront, gCameraUp);
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    //glm::mat4 view = glm::translate(glm::vec3(0.0f, 1.0f, -12.0f));
-    // Transforms the camera: move the camera back (z axis)
-    //glm::mat4 view = glm::translate(glm::vec3(0.0f, 0.0f, -10.0f));
 
     // Creates a perspective projection
     glm::mat4 projection = glm::perspective(45.0f, (GLfloat)WINDOW_WIDTH / (GLfloat)WINDOW_HEIGHT, 0.1f, 100.0f);
@@ -320,11 +317,24 @@ void URender()
 
     // Draws the triangles
 
-    for (const auto& mesh : meshs) {
-        // Activate the VBOs contained within the mesh's VAO
-        glBindVertexArray(mesh.vao);
-        glDrawElements(GL_TRIANGLES, mesh.nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
-    }
+    // draw bottom of shampoo bottle
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, -2.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glBindVertexArray(meshs.at(0).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+
+    // draw top of shampoo bottle
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 4.0f)) * glm::scale(glm::vec3(0.33f, 0.33f, 0.8f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glBindVertexArray(meshs.at(0).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+
+    // draw base
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glBindVertexArray(meshs.at(1).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(1).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+
 
     // Deactivate the Vertex Array Object
     glBindVertexArray(0);
