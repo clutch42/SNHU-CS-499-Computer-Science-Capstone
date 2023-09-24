@@ -48,14 +48,32 @@ namespace
     // Shader program
     GLuint gProgramId;
 
+    // variables for prism
     const int prismRad = 1;
     const int prismHeight = 1;
     const int prismSides = 30;
-
     GLfloat prismVertex[(prismSides + 1) * 2 * 7];
     GLushort prismIndex[prismSides * 12];
+
+    // variables for plane
     GLfloat baseVertex[4*7];
     GLushort baseIndex[6];
+
+    // camera positions
+    glm::vec3 gCameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+    glm::vec3 gCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 gCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    float yaw = -90.0f;  // Initial yaw angle (facing to the left)
+    float pitch = 0.0f;  // Initial pitch angle (level with the horizon)
+    float mouseSensitivity = 0.1f;  // Adjust as needed
+
+    // time
+    float gDeltaTime = 0.0f; // Time between current frame and last frame
+    float gLastFrame = 0.0f;
+
+    // camera speed
+    float cameraSpeed = 2.5f;
 }
 
 /* User-defined Function prototypes to:
@@ -76,6 +94,10 @@ void GeneratePrismVertices();
 void GeneratePrismIndices();
 void GenerateBaseVertices();
 void GenerateBaseIndices();
+
+void UMousePositionCallback(GLFWwindow* window, double xpos, double ypos);
+void UMouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+void UMouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 
 
 /* Vertex Shader Source Code*/
@@ -139,6 +161,11 @@ int main(int argc, char* argv[])
     // -----------
     while (!glfwWindowShouldClose(gWindow))
     {
+        // set time variables
+        float currentFrame = glfwGetTime();
+        gDeltaTime = currentFrame - gLastFrame;
+        gLastFrame = currentFrame;
+
         // input
         // -----
         UProcessInput(gWindow);
@@ -185,6 +212,11 @@ bool UInitialize(int argc, char* argv[], GLFWwindow** window)
     glfwMakeContextCurrent(*window);
     glfwSetFramebufferSizeCallback(*window, UResizeWindow);
 
+    
+    glfwSetCursorPosCallback(*window, UMousePositionCallback);
+    glfwSetScrollCallback(*window, UMouseScrollCallback);
+    glfwSetMouseButtonCallback(*window, UMouseButtonCallback);
+
     // GLEW: initialize
     // ----------------
     // Note: if using GLEW version 1.13 or earlier
@@ -207,9 +239,41 @@ bool UInitialize(int argc, char* argv[], GLFWwindow** window)
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 void UProcessInput(GLFWwindow* window)
 {
+    //static const float cameraSpeed = 2.5f;
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    bool keypress = false;
+
+    float cameraOffset = cameraSpeed * gDeltaTime;
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    {
+        gCameraPos += cameraOffset * gCameraFront;
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    {
+        gCameraPos -= cameraOffset * gCameraFront;
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    {
+        gCameraPos -= glm::normalize(glm::cross(gCameraFront, gCameraUp)) * cameraOffset;
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    {
+        gCameraPos += glm::normalize(glm::cross(gCameraFront, gCameraUp)) * cameraOffset;
+    }
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+    {
+        gCameraPos += gCameraUp * cameraOffset; // Move up
+    }
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+    {
+        gCameraPos -= gCameraUp * cameraOffset; // Move down
+    }
 }
+
 
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -232,25 +296,26 @@ void URender()
     // Set the shader to be used
     glUseProgram(gProgramId);
 
-    
+    // Retrieves and passes transform matrices to the Shader program
+    GLint modelLoc = glGetUniformLocation(gProgramId, "model");
+    GLint viewLoc = glGetUniformLocation(gProgramId, "view");
+    GLint projLoc = glGetUniformLocation(gProgramId, "projection");
 
     // I scaled, then translated, then rotated each of the cylinders seperately
     glm::mat4 model = glm::rotate(1.8f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
-    glm::mat4 view = glm::translate(glm::vec3(0.0f, 1.0f, -12.0f));
-
+    
+    // updated to use the wasd keys to move
+    glm::mat4 view = glm::lookAt(gCameraPos, gCameraPos + gCameraFront, gCameraUp);
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    //glm::mat4 view = glm::translate(glm::vec3(0.0f, 1.0f, -12.0f));
     // Transforms the camera: move the camera back (z axis)
     //glm::mat4 view = glm::translate(glm::vec3(0.0f, 0.0f, -10.0f));
 
     // Creates a perspective projection
     glm::mat4 projection = glm::perspective(45.0f, (GLfloat)WINDOW_WIDTH / (GLfloat)WINDOW_HEIGHT, 0.1f, 100.0f);
 
-    // Retrieves and passes transform matrices to the Shader program
-    GLint modelLoc = glGetUniformLocation(gProgramId, "model");
-    GLint viewLoc = glGetUniformLocation(gProgramId, "view");
-    GLint projLoc = glGetUniformLocation(gProgramId, "projection");
-
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    //glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
     // Draws the triangles
@@ -531,5 +596,130 @@ void GenerateBaseIndices() {
     };
     for (int i = 0; i < 6; i++) {
         baseIndex[i] = values[i];
+    }
+}
+
+void UMousePositionCallback(GLFWwindow* window, double xpos, double ypos)
+{
+    // variables for camera position
+    static double lastX = xpos;
+    static double lastY = ypos;
+    static bool firstMouse = true;
+
+    // sets up initial position
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    // difference between current and last position
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // Reversed since y-coordinates go from bottom to top
+
+    // set current position to last position
+    lastX = xpos;
+    lastY = ypos;
+
+    // scale the offset
+    xoffset *= mouseSensitivity;
+    yoffset *= mouseSensitivity;
+
+    // add the offset to the current yaw and pitch
+    yaw += xoffset;
+    pitch += yoffset;
+
+    // so camera doesn't flip over
+    if (pitch > 89.0f)
+        pitch = 89.0f;
+    if (pitch < -89.0f)
+        pitch = -89.0f;
+
+    // convert the new pitch and yaw to a new matrix
+    glm::vec3 front;
+    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    front.y = sin(glm::radians(pitch));
+    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    gCameraFront = glm::normalize(front);
+}
+
+// glfw: whenever the mouse scroll wheel scrolls, this callback is called
+// updated to control the camera speed. has minimum of 0.0f and maximum of 10.0f
+// updated to control mouse sensitivity as well. has minimum of 0.0f and maximun of 1.0f
+// when the values are both 0.0f the object is locked in place
+// ----------------------------------------------------------------------
+void UMouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    if (yoffset < 0) {
+        cameraSpeed -= 0.5f;
+    }
+    else if (yoffset > 0) {
+        cameraSpeed += 0.5f;
+    }
+    if (cameraSpeed < 0.0f) {
+        cameraSpeed = 0.0f;
+    }
+    if (cameraSpeed > 10.0f) {
+        cameraSpeed = 10.0f;
+    }
+
+
+    if (yoffset < 0) {
+        mouseSensitivity -= 0.05f;
+    }
+    else if (yoffset > 0) {
+        mouseSensitivity += 0.05f;
+    }
+    if (mouseSensitivity < 0.0f) {
+        mouseSensitivity = 0.0f;
+    }
+    if (mouseSensitivity > 1.0f) {
+        mouseSensitivity = 1.0f;
+    }
+}
+
+// glfw: handle mouse button events
+// --------------------------------
+void UMouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+{
+    switch (button)
+    {
+    case GLFW_MOUSE_BUTTON_LEFT:
+    {
+        if (action == GLFW_PRESS) {
+            //cout << "Left mouse button pressed" << endl;
+        }
+        else {
+            //cout << "Left mouse button released" << endl;
+        }
+    }
+    break;
+
+    case GLFW_MOUSE_BUTTON_MIDDLE:
+    {
+        if (action == GLFW_PRESS) {
+            //cout << "Middle mouse button pressed" << endl;
+        }
+        else {
+            //cout << "Middle mouse button released" << endl;
+        }
+    }
+    break;
+
+    case GLFW_MOUSE_BUTTON_RIGHT:
+    {
+        if (action == GLFW_PRESS) {
+            //cout << "Right mouse button pressed" << endl;
+        }
+        else {
+            //cout << "Right mouse button released" << endl;
+        }
+    }
+    break;
+
+    default:
+        cout << "Unhandled mouse button event" << endl;
+        break;
     }
 }
