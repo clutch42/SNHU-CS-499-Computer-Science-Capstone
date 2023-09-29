@@ -1,4 +1,4 @@
-// used the module 3.4 tutorial as a base and made changes as necessary
+// used the module 4 tutorial as a base and made changes as necessary
 
 #include <iostream>         // cout, cerr
 #include <cstdlib>          // EXIT_FAILURE
@@ -74,6 +74,9 @@ namespace
 
     // camera speed
     float cameraSpeed = 2.5f;
+
+    // Initial projection type
+    bool perspectiveProjection = true;
 }
 
 /* User-defined Function prototypes to:
@@ -272,6 +275,10 @@ void UProcessInput(GLFWwindow* window)
     {
         gCameraPos -= gCameraUp * cameraOffset; // Move down
     }
+    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+    {
+        perspectiveProjection = !perspectiveProjection;
+    }
 }
 
 
@@ -309,7 +316,14 @@ void URender()
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
     // Creates a perspective projection
-    glm::mat4 projection = glm::perspective(45.0f, (GLfloat)WINDOW_WIDTH / (GLfloat)WINDOW_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 projection;
+    if (perspectiveProjection) {
+        projection = glm::perspective(45.0f, (GLfloat)WINDOW_WIDTH / (GLfloat)WINDOW_HEIGHT, 0.1f, 100.0f);
+    }
+    else {
+        projection = glm::ortho(-4.0f, 4.0f, -4.0f, 4.0f, 0.1f, 100.0f);
+    }
+    //glm::mat4 projection = glm::perspective(45.0f, (GLfloat)WINDOW_WIDTH / (GLfloat)WINDOW_HEIGHT, 0.1f, 100.0f);
 
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     //glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
