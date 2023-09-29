@@ -71,11 +71,14 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\OpenGL\OpenGL\glm;C:\OpenGL\OpenGL\GLFW\include;C:\OpenGL\OpenGL\GLEW\include;C:\OpenGL\OpenGL\GLAD;C:\OpenGL\OpenGL\glm;C:\OpenGL\OpenGL\GLFW\include;C:\OpenGL\OpenGL\GLEW\include;C:\OpenGL\OpenGL\GLAD;$(IncludePath)</IncludePath>
+    <IncludePath>C:\OpenGL\OpenGL\glm;C:\OpenGL\OpenGL\GLFW\include;C:\OpenGL\OpenGL\GLEW\include;C:\OpenGL\OpenGL\GLAD;C:\OpenGL\OpenGL\glm;C:\OpenGL\OpenGL\GLFW\include;C:\OpenGL\OpenGL\GLEW\include;C:\OpenGL\OpenGL\GLAD;$(IncludePath);$(SolutionDir)stb</IncludePath>
     <LibraryPath>C:\OpenGL\OpenGL\GLFW\lib-vc2019;C:\OpenGL\OpenGL\GLEW\lib\Release\Win32;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>C:\OpenGL\OpenGL\glm;C:\OpenGL\OpenGL\GLFW\include;C:\OpenGL\OpenGL\GLEW\include;C:\OpenGL\OpenGL\GLAD;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);;$(SolutionDir)stb</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -136,6 +139,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stb_image.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="stb\combinedBottle.jpg" />
+    <Image Include="stb\gray_fabric.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

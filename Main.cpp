@@ -14,6 +14,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 using namespace std; // Standard namespace
 
@@ -47,6 +49,9 @@ namespace
     vector<GLMesh> meshs;
     // Shader program
     GLuint gProgramId;
+    // Texture
+    GLuint gTextureId0;
+    GLuint gTextureId1;
 
     // variables for prism
     const int prismRad = 1;
@@ -56,7 +61,7 @@ namespace
     GLushort prismIndex[prismSides * 12];
 
     // variables for plane
-    GLfloat baseVertex[4*7];
+    GLfloat baseVertex[4*9];
     GLushort baseIndex[6];
 
     // camera positions
@@ -102,39 +107,111 @@ void UMousePositionCallback(GLFWwindow* window, double xpos, double ypos);
 void UMouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 void UMouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 
+bool UCreateTexture(const char* filename, GLuint& textureId);
+//bool UCreateSecondTexture(const char* filename, GLuint& textureId);
+void UDestroyTexture(GLuint textureId);
+
+// Images are loaded with Y axis going down, but OpenGL's Y axis goes up, so let's flip it
+void flipImageVertically(unsigned char* image, int width, int height, int channels)
+{
+    for (int j = 0; j < height / 2; ++j)
+    {
+        int index1 = j * width * channels;
+        int index2 = (height - 1 - j) * width * channels;
+
+        for (int i = width * channels; i > 0; --i)
+        {
+            unsigned char tmp = image[index1];
+            image[index1] = image[index2];
+            image[index2] = tmp;
+            ++index1;
+            ++index2;
+        }
+    }
+}
+/* Vertex Shader Source Code*/
+//const GLchar* vertexShaderSource = GLSL(330,
+//    layout(location = 0) in vec3 position; // Vertex data from Vertex Attrib Pointer 0
+//    layout(location = 1) in vec4 color;  // Color data from Vertex Attrib Pointer 1
+//
+//    out vec4 vertexColor; // variable to transfer color data to the fragment shader
+//
+//    //Global variables for the  transform matrices
+//    uniform mat4 model;
+//    uniform mat4 view;
+//    uniform mat4 projection;
+//
+//    void main()
+//    {
+//        gl_Position = projection * view * model * vec4(position, 1.0f); // transforms vertices to clip coordinates
+//        vertexColor = color; // references incoming color data
+//    }
+//);
 
 /* Vertex Shader Source Code*/
-const GLchar* vertexShaderSource = GLSL(440,
-    layout(location = 0) in vec3 position; // Vertex data from Vertex Attrib Pointer 0
-layout(location = 1) in vec4 color;  // Color data from Vertex Attrib Pointer 1
+const GLchar* vertexShaderSource = GLSL(330,
+    layout(location = 0) in vec3 position;     // Position attribute
+    layout(location = 1) in vec4 color;        // Color attribute
+    layout(location = 2) in vec2 texCoord;     // Texture coordinate attribute
 
-out vec4 vertexColor; // variable to transfer color data to the fragment shader
+    out vec4 vertexColor;                          // Output color to fragment shader
+    out vec2 fragTexCoord;                       // Output texture coordinate to fragment shader
 
-//Global variables for the  transform matrices
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
+    uniform mat4 model;                          // Model matrix
+    uniform mat4 view;                           // View matrix
+    uniform mat4 projection;                     // Projection matrix
 
-void main()
-{
-    gl_Position = projection * view * model * vec4(position, 1.0f); // transforms vertices to clip coordinates
-    vertexColor = color; // references incoming color data
-}
+    void main()
+    {
+        mat4 mvp = projection * view * model;    // Model-View-Projection matrix
+        gl_Position = mvp * vec4(position, 1.0);
+
+        vertexColor = color;                      // Pass color to fragment shader
+        fragTexCoord = texCoord;                // Pass texture coordinate to fragment shader
+    }
 );
-
 
 /* Fragment Shader Source Code*/
-const GLchar* fragmentShaderSource = GLSL(440,
-    in vec4 vertexColor; // Variable to hold incoming color data from vertex shader
+//const GLchar* fragmentShaderSource = GLSL(330,
+//    in vec4 vertexColor; // Variable to hold incoming color data from vertex shader
+//
+//out vec4 fragmentColor;
+//
+//void main()
+//{
+//    fragmentColor = vec4(vertexColor);
+//}
+//);
 
-out vec4 fragmentColor;
+/* Fragment Shader Source Code*/
+const GLchar* fragmentShaderSource = GLSL(330,
+    in vec4 vertexColor;                           // Input color from vertex shader
+    in vec2 fragTexCoord;                        // Input texture coordinate from vertex shader
 
-void main()
-{
-    fragmentColor = vec4(vertexColor);
-}
+    out vec4 finalColor;                         // Final output color
+
+    uniform sampler2D textureSampler;            // Texture sampler
+    uniform sampler2D textureSampler2;
+
+    uniform vec4 overrideColor;         // Override color
+
+    void main()
+    {
+        // Use override color if provided, otherwise use base color
+        finalColor.rgb = (overrideColor.a > 0.0) ? overrideColor.rgb : vertexColor.rgb;
+
+        // Sample texture using texture coordinates if textureSampler is set
+        vec4 texColor = texture(textureSampler, fragTexCoord);
+        vec4 texColor2 = texture(textureSampler2, fragTexCoord);
+
+        // If texture is available, use it; otherwise, use the vertex color
+        finalColor.rgb = (texColor.rgb == vec3(0.0)) ? finalColor.rgb : texColor.rgb;
+        finalColor.rgb = (texColor2.rgb == vec3(0.0)) ? finalColor.rgb : texColor2.rgb;
+
+        // Set the alpha value
+        finalColor.a = 1.0; // Or use a different alpha value if needed
+    }
 );
-
 
 int main(int argc, char* argv[])
 {
@@ -156,6 +233,29 @@ int main(int argc, char* argv[])
     // Create the shader program
     if (!UCreateShaderProgram(vertexShaderSource, fragmentShaderSource, gProgramId))
         return EXIT_FAILURE;
+
+    // Load textures
+    const char* texFilename = "stb/gray_fabric.jpg";
+    if (!UCreateTexture(texFilename, gTextureId0))
+    {
+        cout << "Failed to load texture " << texFilename << endl;
+        return EXIT_FAILURE;
+    }
+
+    const char* texFilename2 = "stb/combinedBottle.jpg";
+    if (!UCreateTexture(texFilename2, gTextureId1))
+    {
+        cout << "Failed to load texture " << texFilename2 << endl;
+        return EXIT_FAILURE;
+    }
+
+    // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
+    glUseProgram(gProgramId);
+    // We set the texture as texture unit 0
+    glUniform1i(glGetUniformLocation(gProgramId, "textureSampler"), 0);
+
+    // We set the texture as texture unit 1
+    glUniform1i(glGetUniformLocation(gProgramId, "textureSampler2"), 1);
 
     // Sets the background color of the window to black (it will be implicitely used by glClear)
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -182,6 +282,12 @@ int main(int argc, char* argv[])
         // Release mesh data
         UDestroyMesh(mesh);
     }
+
+    // Release texture
+    UDestroyTexture(gTextureId0);
+    // Release texture
+    UDestroyTexture(gTextureId1);
+
     // Release shader program
     UDestroyShaderProgram(gProgramId);
 
@@ -307,6 +413,7 @@ void URender()
     GLint modelLoc = glGetUniformLocation(gProgramId, "model");
     GLint viewLoc = glGetUniformLocation(gProgramId, "view");
     GLint projLoc = glGetUniformLocation(gProgramId, "projection");
+    GLint overrideColorLoc = glGetUniformLocation(gProgramId, "overrideColor");
 
     // I scaled, then translated, then rotated each of the cylinders seperately
     glm::mat4 model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f));
@@ -332,23 +439,30 @@ void URender()
     // Draws the triangles
 
     // draw bottom of shampoo bottle
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, gTextureId1);
     model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, -2.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(0).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     // draw top of shampoo bottle
+    glm::vec4 color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 4.0f)) * glm::scale(glm::vec3(0.33f, 0.33f, 0.8f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix4fv(overrideColorLoc, 1, GL_FALSE, glm::value_ptr(color));
     glBindVertexArray(meshs.at(0).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
 
     // draw base
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, gTextureId0);
     model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(1).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(1).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
-
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     // Deactivate the Vertex Array Object
     glBindVertexArray(0);
@@ -395,11 +509,12 @@ void UCreatePrismMesh(GLMesh& mesh)
 void UCreateBaseMesh(GLMesh& mesh) {
     const GLuint floatsPerVertex = 3;
     const GLuint floatsPerColor = 4;
+    const GLuint floatsPerCoord = 2;
 
     glGenVertexArrays(1, &mesh.vao); // we can also generate multiple VAOs or buffers at the same time
     glBindVertexArray(mesh.vao);
 
-    size_t baseVertsSize = 7 * 4 * sizeof(GLfloat);
+    size_t baseVertsSize = 9 * 4 * sizeof(GLfloat);
     glGenBuffers(1, &mesh.vbos[0]);
     glBindBuffer(GL_ARRAY_BUFFER, mesh.vbos[0]);
     glBufferData(GL_ARRAY_BUFFER, baseVertsSize, baseVertex, GL_STATIC_DRAW);
@@ -412,7 +527,7 @@ void UCreateBaseMesh(GLMesh& mesh) {
 
 
     // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
-    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor);// The number of floats before each
+    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor + floatsPerCoord);// The number of floats before each
 
     // Create Vertex Attribute Pointers
     glVertexAttribPointer(0, floatsPerVertex, GL_FLOAT, GL_FALSE, stride, 0);
@@ -420,6 +535,9 @@ void UCreateBaseMesh(GLMesh& mesh) {
 
     glVertexAttribPointer(1, floatsPerColor, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * floatsPerVertex));
     glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, floatsPerCoord, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * (floatsPerVertex+floatsPerColor)));
+    glEnableVertexAttribArray(2);
 }
 
 
@@ -429,6 +547,49 @@ void UDestroyMesh(GLMesh& mesh)
     glDeleteBuffers(2, mesh.vbos);
 }
 
+bool UCreateTexture(const char* filename, GLuint& textureId)
+{
+    int width, height, channels;
+    unsigned char* image = stbi_load(filename, &width, &height, &channels, 0);
+    if (image)
+    {
+        flipImageVertically(image, width, height, channels);
+        glGenTextures(1, &textureId);
+        glBindTexture(GL_TEXTURE_2D, textureId);
+
+        // Set the texture wrapping parameters.
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        // Set texture filtering parameters.
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        if (channels == 3)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+        else if (channels == 4)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+        else
+        {
+            cout << "Not implemented to handle image with " << channels << " channels" << endl;
+            return false;
+        }
+
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        stbi_image_free(image);
+        glBindTexture(GL_TEXTURE_2D, 0); // Unbind the texture.
+
+        return true;
+    }
+
+    // Error loading the image
+    return false;
+}
+
+void UDestroyTexture(GLuint textureId)
+{
+    glGenTextures(1, &textureId);
+}
 
 // Implements the UCreateShaders function
 bool UCreateShaderProgram(const char* vtxShaderSource, const char* fragShaderSource, GLuint& programId)
@@ -604,12 +765,12 @@ void GeneratePrismIndices() {
 
 void GenerateBaseVertices() {
     GLfloat values[] = {
-        10.0f, 0.0f,  10.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-       -10.0f, 0.0f,  10.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-        10.0f, 0.0f, -10.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-       -10.0f, 0.0f, -10.0f, 1.0f, 1.0f, 1.0f, 1.0f
+        10.0f, 0.0f,  10.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+       -10.0f, 0.0f,  10.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        10.0f, 0.0f, -10.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+       -10.0f, 0.0f, -10.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f
     };
-    for (int i = 0; i < 4 * 7; i++) {
+    for (int i = 0; i < 4 * 9; i++) {
         baseVertex[i] = values[i];
     }
 }
