@@ -61,6 +61,8 @@ namespace
     const int prismSides = 30;
     GLfloat prismVertex[(prismSides + 1) * 2 * 7];
     GLushort prismIndex[prismSides * 12];
+    GLfloat prismSideVertex[(prismSides + 1) * 2 * 9];
+    GLushort prismSideIndex[prismSides * 6];
 
     // variables for plane
     GLfloat baseVertex[4*9];
@@ -104,6 +106,10 @@ void GeneratePrismVertices();
 void GeneratePrismIndices();
 void GenerateBaseVertices();
 void GenerateBaseIndices();
+void GeneratePrismSideVertices();
+void GeneratePrismSideIndices();
+void UCreatePrismSideMesh(GLMesh& mesh);
+
 
 void UMousePositionCallback(GLFWwindow* window, double xpos, double ypos);
 void UMouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
@@ -226,12 +232,17 @@ int main(int argc, char* argv[])
     UCreatePrismMesh(cylinderMesh); // Calls the function to create the Vertex Buffer Object
     meshs.push_back(cylinderMesh);
 
+    GLMesh cylinderSideMesh;
+    GeneratePrismSideVertices();
+    GeneratePrismSideIndices();
+    UCreatePrismSideMesh(cylinderSideMesh); // Calls the function to create the Vertex Buffer Object
+    meshs.push_back(cylinderSideMesh);
+
     GLMesh baseMesh;
     GenerateBaseVertices();
     GenerateBaseIndices();
     UCreateBaseMesh(baseMesh);
     meshs.push_back(baseMesh);
-    
 
     // Create the shader program
     if (!UCreateShaderProgram(vertexShaderSource, fragmentShaderSource, gProgramId))
@@ -446,8 +457,8 @@ void URender()
     glBindTexture(GL_TEXTURE_2D, gTextureId1);
     model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, -2.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-    glBindVertexArray(meshs.at(0).vao);
-    glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    glBindVertexArray(meshs.at(1).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(1).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // draw top of shampoo bottle
@@ -464,8 +475,8 @@ void URender()
     glBindTexture(GL_TEXTURE_2D, gTextureId0);
     model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-    glBindVertexArray(meshs.at(1).vao);
-    glDrawElements(GL_TRIANGLES, meshs.at(1).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    glBindVertexArray(meshs.at(2).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(2).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // Deactivate the Vertex Array Object
@@ -507,6 +518,42 @@ void UCreatePrismMesh(GLMesh& mesh)
     glVertexAttribPointer(1, floatsPerColor, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * floatsPerVertex));
     glEnableVertexAttribArray(1);
 
+
+}
+
+void UCreatePrismSideMesh(GLMesh& mesh)
+{
+    const GLuint floatsPerVertex = 3;
+    const GLuint floatsPerColor = 4;
+    const GLuint floatsPerCoord = 2; 
+
+    glGenVertexArrays(1, &mesh.vao); // we can also generate multiple VAOs or buffers at the same time
+    glBindVertexArray(mesh.vao);
+
+    size_t prismVertsSize = (prismSides + 1) * 9 * 2 * sizeof(GLfloat);
+    glGenBuffers(1, &mesh.vbos[0]);
+    glBindBuffer(GL_ARRAY_BUFFER, mesh.vbos[0]);
+    glBufferData(GL_ARRAY_BUFFER, prismVertsSize, prismSideVertex, GL_STATIC_DRAW);
+
+    size_t numIndices = sizeof(prismIndex) / sizeof(prismIndex[0]);
+    mesh.nIndices = sizeof(prismIndex);
+    glGenBuffers(1, &mesh.vbos[1]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.vbos[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * numIndices, prismIndex, GL_STATIC_DRAW);
+
+
+    // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
+    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor + floatsPerCoord);// The number of floats before each
+
+    // Create Vertex Attribute Pointers
+    glVertexAttribPointer(0, floatsPerVertex, GL_FLOAT, GL_FALSE, stride, 0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, floatsPerColor, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * floatsPerVertex));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, floatsPerColor, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * (floatsPerVertex + floatsPerColor)));
+    glEnableVertexAttribArray(2);
 
 }
 
@@ -668,8 +715,8 @@ void GeneratePrismVertices() {
     
     vector<GLfloat> prismData;
     const int numColors = 6;
-    prismData.insert(prismData.end(), { 0.0f, 0.0f, 0.0f, 1.0f,1.0f,1.0f,1.0f });
-    prismData.insert(prismData.end(), { 0.0f, 0.0f, prismHeight, 0.0f,0.0f,0.0f,1.0f });
+    prismData.insert(prismData.end(), { 0.0f, 0.0f, 0.0f, 1.0f,1.0f,1.0f,1.0f});
+    prismData.insert(prismData.end(), { 0.0f, 0.0f, prismHeight, 0.0f,0.0f,0.0f,1.0f});
     for (int i = 0; i < prismSides; ++i) {
         GLfloat theta = 2.0f * M_PI * static_cast<float>(i) / prismSides;
         GLfloat x = prismRad * cos(theta);
@@ -727,6 +774,72 @@ void GeneratePrismVertices() {
     }
 }
 
+void GeneratePrismSideVertices() {
+
+    vector<GLfloat> prismData;
+    const int numColors = 6;
+    for (int i = 0; i < prismSides + 1; ++i) {
+        GLfloat theta = 2.0f * M_PI * static_cast<float>(i) / prismSides;
+        GLfloat x = prismRad * cos(theta);
+        GLfloat y = prismRad * sin(theta);
+        prismData.push_back((x));
+        prismData.push_back((y));
+        prismData.push_back(0.0f);
+
+        // Assign colors with alpha to vertices based on the segment
+        glm::vec4 color;
+        int colorIndex = i % numColors;
+        if (colorIndex == 0) {
+            prismData.insert(prismData.end(), { 1.0f, 0.0f, 0.0f, 1.0f });
+        }
+        else if (colorIndex == 1) {
+            prismData.insert(prismData.end(), { 0.0f, 1.0f, 0.0f, 1.0f });
+        }
+        else if (colorIndex == 2) {
+            prismData.insert(prismData.end(), { 0.0f, 0.0f, 1.0f, 1.0f });
+        }
+        else if (colorIndex == 3) {
+            prismData.insert(prismData.end(), { 1.0f, 1.0f, 0.0f, 1.0f });
+        }
+        else if (colorIndex == 4) {
+            prismData.insert(prismData.end(), { 0.0f, 1.0f, 1.0f, 1.0f });
+        }
+        else {
+            prismData.insert(prismData.end(), { 1.0f, 0.0f, 1.0f, 1.0f });
+        }
+
+        prismData.insert(prismData.end(), { 1.0f, static_cast<float>(i) / prismSides});
+
+        prismData.push_back(x);
+        prismData.push_back(y);
+        prismData.push_back(static_cast<GLfloat>(prismHeight));
+        if (colorIndex == 0) {
+            prismData.insert(prismData.end(), { 1.0f, 0.0f, 0.0f, 1.0f });
+        }
+        else if (colorIndex == 1) {
+            prismData.insert(prismData.end(), { 0.0f, 1.0f, 0.0f, 1.0f });
+        }
+        else if (colorIndex == 2) {
+            prismData.insert(prismData.end(), { 0.0f, 0.0f, 1.0f, 1.0f });
+        }
+        else if (colorIndex == 3) {
+            prismData.insert(prismData.end(), { 1.0f, 1.0f, 0.0f, 1.0f });
+        }
+        else if (colorIndex == 4) {
+            prismData.insert(prismData.end(), { 0.0f, 1.0f, 1.0f, 1.0f });
+        }
+        else {
+            prismData.insert(prismData.end(), { 1.0f, 0.0f, 1.0f, 1.0f });
+        }
+
+        prismData.insert(prismData.end(), { 0.0f, static_cast<float>(i) / prismSides});
+    }
+
+    for (int i = 0; i < prismData.size(); i++) {
+        prismSideVertex[i] = prismData[i];
+    }
+}
+
 
 
 // I created this function to get indices for the prism
@@ -764,6 +877,22 @@ void GeneratePrismIndices() {
     
     for (int i = 0; i < prismData.size(); i++) {
         prismIndex[i] = prismData[i];
+    }
+}
+
+void GeneratePrismSideIndices() {
+    std::vector<GLushort> prismData;
+    // create top and bottom
+    int vert = (prismSides) * 2;
+    
+    // create sides
+    for (int i = 0; i < vert; i++) {
+        prismData.insert(prismData.end(), { static_cast<GLushort>(i), static_cast<GLushort>(i + 1), static_cast<GLushort>(i + 2) });
+    }
+
+
+    for (int i = 0; i < prismData.size(); i++) {
+        prismSideIndex[i] = prismData[i];
     }
 }
 
