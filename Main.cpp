@@ -27,7 +27,7 @@ using namespace std; // Standard namespace
 // Unnamed namespace
 namespace
 {
-    const char* const WINDOW_TITLE = "Brian Engel 3D Triangle"; // Macro for window title
+    const char* const WINDOW_TITLE = "Brian Engel 3D Bottle"; // Macro for window title
 
     // Variables for window width and height
     const int WINDOW_WIDTH = 800;
@@ -63,6 +63,7 @@ namespace
     GLushort prismIndex[prismSides * 12];
     GLfloat prismSideVertex[(prismSides + 1) * 2 * 9];
     GLushort prismSideIndex[prismSides * 6];
+    GLushort prismTopIndex[prismSides * 6];
 
     // variables for plane
     GLfloat baseVertex[4*9];
@@ -109,7 +110,8 @@ void GenerateBaseIndices();
 void GeneratePrismSideVertices();
 void GeneratePrismSideIndices();
 void UCreatePrismSideMesh(GLMesh& mesh);
-
+void GeneratePrismTopIndices();
+void UCreatePrismTopMesh(GLMesh& mesh);
 
 void UMousePositionCallback(GLFWwindow* window, double xpos, double ypos);
 void UMouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
@@ -237,6 +239,11 @@ int main(int argc, char* argv[])
     GeneratePrismSideIndices();
     UCreatePrismSideMesh(cylinderSideMesh); // Calls the function to create the Vertex Buffer Object
     meshs.push_back(cylinderSideMesh);
+
+    GLMesh cylinderTopMesh;
+    GeneratePrismTopIndices();
+    UCreatePrismTopMesh(cylinderTopMesh); // Calls the function to create the Vertex Buffer Object
+    meshs.push_back(cylinderTopMesh);
 
     GLMesh baseMesh;
     GenerateBaseVertices();
@@ -450,9 +457,7 @@ void URender()
     //glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-    // Draws the triangles
-
-    // draw bottom of shampoo bottle
+    // draw bottom of shampoo bottle with texture
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, gTextureId1);
     model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, -2.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
@@ -461,7 +466,14 @@ void URender()
     glDrawElements(GL_TRIANGLES, meshs.at(1).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    // draw top of shampoo bottle
+    // draw top and bottom of body of bottle
+    glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 1.0f, 1.0f, 1.0f);
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, -2.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glBindVertexArray(meshs.at(2).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(2).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    
+    // draw top (cap) of shampoo bottle change color to white
     glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 1.0f, 1.0f, 1.0f);
     model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 4.0f)) * glm::scale(glm::vec3(0.33f, 0.33f, 0.8f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -475,10 +487,10 @@ void URender()
     glBindTexture(GL_TEXTURE_2D, gTextureId0);
     model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-    glBindVertexArray(meshs.at(2).vao);
-    glDrawElements(GL_TRIANGLES, meshs.at(2).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    glBindVertexArray(meshs.at(3).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(3).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
     glBindTexture(GL_TEXTURE_2D, 0);
-
+    
     // Deactivate the Vertex Array Object
     glBindVertexArray(0);
 
@@ -517,8 +529,36 @@ void UCreatePrismMesh(GLMesh& mesh)
 
     glVertexAttribPointer(1, floatsPerColor, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * floatsPerVertex));
     glEnableVertexAttribArray(1);
+}
 
+void UCreatePrismTopMesh(GLMesh& mesh)
+{
+    const GLuint floatsPerVertex = 3;
+    const GLuint floatsPerColor = 4;
 
+    glGenVertexArrays(1, &mesh.vao); // we can also generate multiple VAOs or buffers at the same time
+    glBindVertexArray(mesh.vao);
+
+    size_t prismVertsSize = (prismSides + 1) * 7 * 2 * sizeof(GLfloat);
+    glGenBuffers(1, &mesh.vbos[0]);
+    glBindBuffer(GL_ARRAY_BUFFER, mesh.vbos[0]);
+    glBufferData(GL_ARRAY_BUFFER, prismVertsSize, prismVertex, GL_STATIC_DRAW);
+
+    size_t numIndices = sizeof(prismTopIndex) / sizeof(prismTopIndex[0]);
+    mesh.nIndices = sizeof(prismTopIndex);
+    glGenBuffers(1, &mesh.vbos[1]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.vbos[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * numIndices, prismTopIndex, GL_STATIC_DRAW);
+
+    // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
+    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor);// The number of floats before each
+
+    // Create Vertex Attribute Pointers
+    glVertexAttribPointer(0, floatsPerVertex, GL_FLOAT, GL_FALSE, stride, 0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, floatsPerColor, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * floatsPerVertex));
+    glEnableVertexAttribArray(1);
 }
 
 void UCreatePrismSideMesh(GLMesh& mesh)
@@ -539,7 +579,7 @@ void UCreatePrismSideMesh(GLMesh& mesh)
     mesh.nIndices = sizeof(prismIndex);
     glGenBuffers(1, &mesh.vbos[1]);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.vbos[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * numIndices, prismIndex, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * numIndices, prismSideIndex, GL_STATIC_DRAW);
 
 
     // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
@@ -808,7 +848,7 @@ void GeneratePrismSideVertices() {
             prismData.insert(prismData.end(), { 1.0f, 0.0f, 1.0f, 1.0f });
         }
 
-        prismData.insert(prismData.end(), { 1.0f, static_cast<float>(i) / prismSides});
+        prismData.insert(prismData.end(), { 1.0f, static_cast<float>(i) / prismSides });
 
         prismData.push_back(x);
         prismData.push_back(y);
@@ -832,15 +872,13 @@ void GeneratePrismSideVertices() {
             prismData.insert(prismData.end(), { 1.0f, 0.0f, 1.0f, 1.0f });
         }
 
-        prismData.insert(prismData.end(), { 0.0f, static_cast<float>(i) / prismSides});
+        prismData.insert(prismData.end(), { 0.0f, static_cast<float>(i) / prismSides });
     }
 
     for (int i = 0; i < prismData.size(); i++) {
         prismSideVertex[i] = prismData[i];
     }
 }
-
-
 
 // I created this function to get indices for the prism
 void GeneratePrismIndices() {
@@ -893,6 +931,30 @@ void GeneratePrismSideIndices() {
 
     for (int i = 0; i < prismData.size(); i++) {
         prismSideIndex[i] = prismData[i];
+    }
+}
+
+// I created this function to get indices for the prism
+void GeneratePrismTopIndices() {
+    std::vector<GLushort> prismData;
+    // create top and bottom
+    int vert = (prismSides + 1) * 2;
+    for (int i = 2; i < vert; i++) {
+        if (i == 2) {
+            prismData.insert(prismData.end(), { 0, static_cast<GLushort>(i), static_cast<GLushort>(vert - 2) });
+        }
+        else if (i == 3) {
+            prismData.insert(prismData.end(), { 1, static_cast<GLushort>(i), static_cast<GLushort>(vert - 1) });
+        }
+        else if (i % 2 == 0) {
+            prismData.insert(prismData.end(), { 0, static_cast<GLushort>(i), static_cast<GLushort>(i - 2) });
+        }
+        else {
+            prismData.insert(prismData.end(), { 1, static_cast<GLushort>(i), static_cast<GLushort>(i - 2) });
+        }
+    }
+    for (int i = 0; i < prismData.size(); i++) {
+        prismTopIndex[i] = prismData[i];
     }
 }
 
