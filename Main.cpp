@@ -52,6 +52,8 @@ namespace
     // Texture
     GLuint gTextureId0;
     GLuint gTextureId1;
+    glm::vec2 gUVScale(5.0f, 5.0f);
+    GLint gTexWrapMode = GL_REPEAT;
 
     // variables for prism
     const int prismRad = 1;
@@ -192,6 +194,7 @@ const GLchar* fragmentShaderSource = GLSL(330,
 
     uniform sampler2D textureSampler;            // Texture sampler
     uniform sampler2D textureSampler2;
+    uniform vec2 uvScale;
 
     uniform vec4 overrideColor;         // Override color
 
@@ -201,7 +204,7 @@ const GLchar* fragmentShaderSource = GLSL(330,
         finalColor.rgb = (overrideColor.a > 0.0) ? overrideColor.rgb : vertexColor.rgb;
 
         // Sample texture using texture coordinates if textureSampler is set
-        vec4 texColor = texture(textureSampler, fragTexCoord);
+        vec4 texColor = texture(textureSampler, fragTexCoord * uvScale);
         vec4 texColor2 = texture(textureSampler2, fragTexCoord);
 
         // If texture is available, use it; otherwise, use the vertex color
@@ -455,6 +458,8 @@ void URender()
     glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
 
     // draw base
+    GLint UVScaleLoc = glGetUniformLocation(gProgramId, "uvScale");
+    glUniform2fv(UVScaleLoc, 1, glm::value_ptr(gUVScale));
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, gTextureId0);
     model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f));
