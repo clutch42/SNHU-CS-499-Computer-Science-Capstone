@@ -1037,8 +1037,8 @@ void UMouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     else if (yoffset > 0) {
         cameraSpeed += 0.5f;
     }
-    if (cameraSpeed < 0.0f) {
-        cameraSpeed = 0.0f;
+    if (cameraSpeed < 1.0f) {
+        cameraSpeed = 1.0f;
     }
     if (cameraSpeed > 10.0f) {
         cameraSpeed = 10.0f;
@@ -1051,8 +1051,8 @@ void UMouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     else if (yoffset > 0) {
         mouseSensitivity += 0.05f;
     }
-    if (mouseSensitivity < 0.0f) {
-        mouseSensitivity = 0.0f;
+    if (mouseSensitivity < 0.1f) {
+        mouseSensitivity = 0.1f;
     }
     if (mouseSensitivity > 1.0f) {
         mouseSensitivity = 1.0f;
