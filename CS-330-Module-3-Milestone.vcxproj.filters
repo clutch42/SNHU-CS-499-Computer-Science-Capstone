@@ -34,5 +34,8 @@
     <Image Include="stb\combinedBottle.jpg">
       <Filter>Source Files\stb</Filter>
     </Image>
+    <Image Include="stb\offwhite.jpg">
+      <Filter>Source Files\stb</Filter>
+    </Image>
   </ItemGroup>
 </Project>

@@ -50,6 +50,7 @@ namespace
     // Texture
     GLuint gTextureId0;
     GLuint gTextureId1;
+    GLuint gTextureId2;
     glm::vec2 gUVScale(5.0f, 5.0f);
     GLint gTexWrapMode = GL_REPEAT;
 
@@ -90,12 +91,12 @@ namespace
     glm::vec3 gLightColor2(1.0f, 1.0f, 1.0f);
 
     // Light position
-    glm::vec3 gLightPosition(0.0f, 1.0f, 20.0f);
-    glm::vec3 gLightPosition2(0.5f, 14.0f, 1.0f);
+    glm::vec3 gLightPosition(0.0f, 5.0f, 40.0f);
+    glm::vec3 gLightPosition2(2.0f, 16.0f, 4.0f);
 
     // diffuse lamp intensity
-    float diffuseIntensityValue = 0.8;
-    float diffuseIntensityValue2 = 0.8;
+    float diffuseIntensityValue = 0.5;
+    float diffuseIntensityValue2 = 0.5;
 }
 
 /* User-defined Function prototypes to:
@@ -189,6 +190,7 @@ const GLchar* fragmentShaderSource = GLSL(330,
 
     uniform sampler2D textureSampler;            // Texture sampler
     uniform sampler2D textureSampler2;
+    uniform sampler2D textureSampler3;
     uniform vec2 uvScale;
 
     uniform vec4 overrideColor;         // Override color
@@ -245,10 +247,12 @@ const GLchar* fragmentShaderSource = GLSL(330,
         // Sample texture using texture coordinates if textureSampler is set
         vec4 texColor = texture(textureSampler, fragTexCoord * uvScale);
         vec4 texColor2 = texture(textureSampler2, fragTexCoord);
+        vec4 texColor3 = texture(textureSampler3, fragTexCoord);
 
         // If texture is available, use it; otherwise, use the vertex color
         finalColor.rgb = (texColor.rgb == vec3(0.0)) ? finalColor.rgb : texColor.rgb * phong;
         finalColor.rgb = (texColor2.rgb == vec3(0.0)) ? finalColor.rgb : texColor2.rgb * phong;
+        finalColor.rgb = (texColor3.rgb == vec3(0.0)) ? finalColor.rgb : texColor3.rgb * phong;
 
         // Set the alpha value
         finalColor.a = 1.0; // Or use a different alpha value if needed
@@ -300,6 +304,12 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
+    const char* texFilename3 = "stb/offwhite.jpg";
+    if (!UCreateTexture(texFilename3, gTextureId2))
+    {
+        cout << "Failed to load texture " << texFilename3 << endl;
+        return EXIT_FAILURE;
+    }
     // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
     glUseProgram(gProgramId);
     // We set the texture as texture unit 0
@@ -307,6 +317,9 @@ int main(int argc, char* argv[])
 
     // We set the texture as texture unit 1
     glUniform1i(glGetUniformLocation(gProgramId, "textureSampler2"), 1);
+
+    // We set the texture as texture unit 2
+    glUniform1i(glGetUniformLocation(gProgramId, "textureSampler3"), 2);
 
     // Sets the background color of the window to black (it will be implicitely used by glClear)
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -338,6 +351,7 @@ int main(int argc, char* argv[])
     UDestroyTexture(gTextureId0);
     // Release texture
     UDestroyTexture(gTextureId1);
+    UDestroyTexture(gTextureId2);
 
     // Release shader program
     UDestroyShaderProgram(gProgramId);
@@ -514,21 +528,34 @@ void URender()
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // draw top and bottom of body of bottle
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, gTextureId1);
-    glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 1.0f, 1.0f, 1.0f);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, gTextureId2);
+    glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 0.0f, 0.0f, 1.0f);
     model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, -2.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(0).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    //// draw top (cap) of shampoo bottle change color to white
-    //glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 1.0f, 1.0f, 1.0f);
-    //model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 4.0f)) * glm::scale(glm::vec3(0.33f, 0.33f, 0.8f));
-    //glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-    //glBindVertexArray(meshs.at(0).vao);
-    //glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    // draw top (cap) of shampoo bottle change color to white
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, gTextureId2);
+    glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 0.0f, 0.0f, 1.0f);
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 4.0f)) * glm::scale(glm::vec3(0.33f, 0.33f, 0.8f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glBindVertexArray(meshs.at(0).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // draw sides (cap) of shampoo bottle change color to white
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, gTextureId2);
+    glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 0.0f, 1.0f, 0.0f, 1.0f);
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 4.0f)) * glm::scale(glm::vec3(0.33f, 0.33f, 0.8f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glBindVertexArray(meshs.at(1).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(1).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     // draw base
     glUniform2fv(UVScaleLoc, 1, glm::value_ptr(gUVScale));

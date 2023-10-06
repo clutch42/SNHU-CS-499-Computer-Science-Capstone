@@ -146,6 +146,7 @@
   <ItemGroup>
     <Image Include="stb\combinedBottle.jpg" />
     <Image Include="stb\gray_fabric.jpg" />
+    <Image Include="stb\offwhite.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
