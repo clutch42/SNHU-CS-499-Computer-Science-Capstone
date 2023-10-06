@@ -61,12 +61,12 @@ namespace
     const int prismSides = 30;
     GLfloat prismVertex[(prismSides + 1) * 2 * 7];
     GLushort prismIndex[prismSides * 12];
-    GLfloat prismSideVertex[(prismSides + 1) * 2 * 9];
+    GLfloat prismSideVertex[(prismSides + 1) * 2 * 12];
     GLushort prismSideIndex[prismSides * 6];
     GLushort prismTopIndex[prismSides * 6];
 
     // variables for plane
-    GLfloat baseVertex[4*9];
+    GLfloat baseVertex[4*12];
     GLushort baseIndex[6];
 
     // camera positions
@@ -87,6 +87,18 @@ namespace
 
     // Initial projection type
     bool perspectiveProjection = true;
+
+    // light color
+    glm::vec3 gLightColor(1.0f, 1.0f, 1.0f);
+    glm::vec3 gLightColor2(1.0f, 1.0f, 1.0f);
+
+    // Light position
+    glm::vec3 gLightPosition(0.0f, 1.0f, 20.0f);
+    glm::vec3 gLightPosition2(0.5f, 14.0f, 1.0f);
+
+    // diffuse lamp intensity
+    float diffuseIntensityValue = 0.8;
+    float diffuseIntensityValue2 = 0.8;
 }
 
 /* User-defined Function prototypes to:
@@ -139,33 +151,18 @@ void flipImageVertically(unsigned char* image, int width, int height, int channe
         }
     }
 }
-/* Vertex Shader Source Code*/
-//const GLchar* vertexShaderSource = GLSL(330,
-//    layout(location = 0) in vec3 position; // Vertex data from Vertex Attrib Pointer 0
-//    layout(location = 1) in vec4 color;  // Color data from Vertex Attrib Pointer 1
-//
-//    out vec4 vertexColor; // variable to transfer color data to the fragment shader
-//
-//    //Global variables for the  transform matrices
-//    uniform mat4 model;
-//    uniform mat4 view;
-//    uniform mat4 projection;
-//
-//    void main()
-//    {
-//        gl_Position = projection * view * model * vec4(position, 1.0f); // transforms vertices to clip coordinates
-//        vertexColor = color; // references incoming color data
-//    }
-//);
 
 /* Vertex Shader Source Code*/
 const GLchar* vertexShaderSource = GLSL(330,
     layout(location = 0) in vec3 position;     // Position attribute
     layout(location = 1) in vec4 color;        // Color attribute
     layout(location = 2) in vec2 texCoord;     // Texture coordinate attribute
+    layout(location = 3) in vec3 normal;       // normal attribute
 
     out vec4 vertexColor;                          // Output color to fragment shader
     out vec2 fragTexCoord;                       // Output texture coordinate to fragment shader
+    out vec3 vertexNormal; // For outgoing normals to fragment shader
+    out vec3 vertexFragmentPos; // For outgoing color or pixels to fragment shader
 
     uniform mat4 model;                          // Model matrix
     uniform mat4 view;                           // View matrix
@@ -178,25 +175,20 @@ const GLchar* vertexShaderSource = GLSL(330,
 
         vertexColor = color;                      // Pass color to fragment shader
         fragTexCoord = texCoord;                // Pass texture coordinate to fragment shader
+
+        vertexFragmentPos = vec3(model * vec4(position, 1.0f)); // Gets fragment or pixel position in world space only (excludes view and projection)
+
+        vertexNormal = mat3(transpose(inverse(model))) * normal; // Gets normal vectors in world space only and excludes normal translation properties
+
     }
 );
-
-/* Fragment Shader Source Code*/
-//const GLchar* fragmentShaderSource = GLSL(330,
-//    in vec4 vertexColor; // Variable to hold incoming color data from vertex shader
-//
-//out vec4 fragmentColor;
-//
-//void main()
-//{
-//    fragmentColor = vec4(vertexColor);
-//}
-//);
 
 /* Fragment Shader Source Code*/
 const GLchar* fragmentShaderSource = GLSL(330,
     in vec4 vertexColor;                           // Input color from vertex shader
     in vec2 fragTexCoord;                        // Input texture coordinate from vertex shader
+    in vec3 vertexNormal; // For incoming normals
+    in vec3 vertexFragmentPos; // For incoming fragment position
 
     out vec4 finalColor;                         // Final output color
 
@@ -206,18 +198,62 @@ const GLchar* fragmentShaderSource = GLSL(330,
 
     uniform vec4 overrideColor;         // Override color
 
+    uniform vec3 lightColor;
+    uniform vec3 lightColor2;
+    uniform vec3 lightPos;
+    uniform vec3 lightPos2;
+    uniform vec3 viewPosition;
+    uniform float diffuseIntensity;
+    uniform float diffuseIntensity2;
+
     void main()
     {
+        //Calculate Ambient lighting*/
+        float ambientStrength = 0.5f; // Set ambient or global lighting strength.
+        vec3 ambient = ambientStrength * lightColor; // Generate ambient light color.
+
+        //Calculate Diffuse lighting*/
+        vec3 norm = normalize(vertexNormal); // Normalize vectors to 1 unit.
+        vec3 lightDirection = normalize(lightPos - vertexFragmentPos); // Calculate distance (light direction) between light source and fragments/pixels on cube.
+        float impact = max(dot(norm, lightDirection), 0.0) * diffuseIntensity;// Calculate diffuse impact by generating dot product of normal and light.
+        vec3 diffuse = impact * lightColor; // Generate diffuse light color.
+
+        vec3 norm2 = normalize(vertexNormal); // Normalize vectors to 1 unit.
+        vec3 lightDirection2 = normalize(lightPos2 - vertexFragmentPos); // Calculate distance (light direction) between light source and fragments/pixels on cube.
+        float impact2 = max(dot(norm, lightDirection2), 0.0) * diffuseIntensity2;// Calculate diffuse impact by generating dot product of normal and light.
+        vec3 diffuse2 = impact2 * lightColor2; // Generate diffuse light color.
+
+        //Calculate Specular lighting*/
+        float specularIntensity = 0.8f; // Set specular light strength.
+        float highlightSize = 16.0f; // Set specular highlight size.
+        vec3 viewDir = normalize(viewPosition - vertexFragmentPos); // Calculate view direction.
+
+        // Calculate Specular lighting for light 1
+        vec3 reflectDir = reflect(-lightDirection, norm);
+        float specularComponent = pow(max(dot(viewDir, reflectDir), 0.0), highlightSize);
+        vec3 specular = specularIntensity * specularComponent * lightColor;
+
+        // Calculate Specular lighting for light 2
+        vec3 reflectDir2 = reflect(-lightDirection2, norm2);
+        float specularComponent2 = pow(max(dot(viewDir, reflectDir2), 0.0), highlightSize);
+        vec3 specular2 = specularIntensity * specularComponent2 * lightColor2;
+
+        // Sum up the specular components
+        vec3 specularSum = specular + specular2;
+
+        // Calculate Phong result.
+        vec3 phong = (ambient + diffuse + diffuse2 + specularSum);
+
         // Use override color if provided, otherwise use base color
-        finalColor.rgb = (overrideColor.a > 0.0) ? overrideColor.rgb : vertexColor.rgb;
+        finalColor.rgb = (overrideColor.a > 0.0) ? overrideColor.rgb * phong : vertexColor.rgb * phong;
 
         // Sample texture using texture coordinates if textureSampler is set
         vec4 texColor = texture(textureSampler, fragTexCoord * uvScale);
         vec4 texColor2 = texture(textureSampler2, fragTexCoord);
 
         // If texture is available, use it; otherwise, use the vertex color
-        finalColor.rgb = (texColor.rgb == vec3(0.0)) ? finalColor.rgb : texColor.rgb;
-        finalColor.rgb = (texColor2.rgb == vec3(0.0)) ? finalColor.rgb : texColor2.rgb;
+        finalColor.rgb = (texColor.rgb == vec3(0.0)) ? finalColor.rgb : texColor.rgb * phong;
+        finalColor.rgb = (texColor2.rgb == vec3(0.0)) ? finalColor.rgb : texColor2.rgb * phong;
 
         // Set the alpha value
         finalColor.a = 1.0; // Or use a different alpha value if needed
@@ -435,6 +471,25 @@ void URender()
     GLint viewLoc = glGetUniformLocation(gProgramId, "view");
     GLint projLoc = glGetUniformLocation(gProgramId, "projection");
     GLint overrideColorLoc = glGetUniformLocation(gProgramId, "overrideColor");
+    GLint UVScaleLoc = glGetUniformLocation(gProgramId, "uvScale");
+
+    GLint lightColorLoc = glGetUniformLocation(gProgramId, "lightColor");
+    GLint lightColorLoc2 = glGetUniformLocation(gProgramId, "lightColor2");
+    GLint lightPositionLoc = glGetUniformLocation(gProgramId, "lightPos");
+    GLint lightPositionLoc2 = glGetUniformLocation(gProgramId, "lightPos2");
+    GLint viewPositionLoc = glGetUniformLocation(gProgramId, "viewPosition");
+    GLint diffuseIntensityLocation = glGetUniformLocation(gProgramId, "diffuseIntensity");
+    GLint diffuseIntensityLocation2 = glGetUniformLocation(gProgramId, "diffuseIntensity2");
+
+    // Pass color, light, and camera data to the Cube Shader program's corresponding uniforms
+    glUniform3f(lightColorLoc, gLightColor.r, gLightColor.g, gLightColor.b);
+    glUniform3f(lightColorLoc2, gLightColor2.r, gLightColor2.g, gLightColor2.b);
+    glUniform3f(lightPositionLoc, gLightPosition.x, gLightPosition.y, gLightPosition.z);
+    glUniform3f(lightPositionLoc2, gLightPosition2.x, gLightPosition2.y, gLightPosition2.z);
+    const glm::vec3 cameraPosition = gCameraPos;
+    glUniform3f(viewPositionLoc, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+    glUniform1f(diffuseIntensityLocation, diffuseIntensityValue);
+    glUniform1f(diffuseIntensityLocation2, diffuseIntensityValue2);
 
     // I scaled, then translated, then rotated each of the cylinders seperately
     glm::mat4 model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f));
@@ -481,7 +536,6 @@ void URender()
     glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
 
     // draw base
-    GLint UVScaleLoc = glGetUniformLocation(gProgramId, "uvScale");
     glUniform2fv(UVScaleLoc, 1, glm::value_ptr(gUVScale));
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, gTextureId0);
@@ -535,11 +589,13 @@ void UCreatePrismTopMesh(GLMesh& mesh)
 {
     const GLuint floatsPerVertex = 3;
     const GLuint floatsPerColor = 4;
+    const GLuint floatsPerCoord = 2;
+    const GLuint floatsPerNormal = 3;
 
     glGenVertexArrays(1, &mesh.vao); // we can also generate multiple VAOs or buffers at the same time
     glBindVertexArray(mesh.vao);
 
-    size_t prismVertsSize = (prismSides + 1) * 7 * 2 * sizeof(GLfloat);
+    size_t prismVertsSize = (prismSides + 1) * 12 * 2 * sizeof(GLfloat);
     glGenBuffers(1, &mesh.vbos[0]);
     glBindBuffer(GL_ARRAY_BUFFER, mesh.vbos[0]);
     glBufferData(GL_ARRAY_BUFFER, prismVertsSize, prismVertex, GL_STATIC_DRAW);
@@ -549,9 +605,9 @@ void UCreatePrismTopMesh(GLMesh& mesh)
     glGenBuffers(1, &mesh.vbos[1]);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.vbos[1]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * numIndices, prismTopIndex, GL_STATIC_DRAW);
-
+  
     // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
-    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor);// The number of floats before each
+    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor + floatsPerCoord + floatsPerNormal);// The number of floats before each
 
     // Create Vertex Attribute Pointers
     glVertexAttribPointer(0, floatsPerVertex, GL_FLOAT, GL_FALSE, stride, 0);
@@ -559,6 +615,12 @@ void UCreatePrismTopMesh(GLMesh& mesh)
 
     glVertexAttribPointer(1, floatsPerColor, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * floatsPerVertex));
     glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, floatsPerCoord, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * (floatsPerVertex + floatsPerColor)));
+    glEnableVertexAttribArray(2);
+
+    glVertexAttribPointer(3, floatsPerNormal, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * (floatsPerVertex + floatsPerColor + floatsPerCoord)));
+    glEnableVertexAttribArray(3);
 }
 
 void UCreatePrismSideMesh(GLMesh& mesh)
@@ -566,11 +628,12 @@ void UCreatePrismSideMesh(GLMesh& mesh)
     const GLuint floatsPerVertex = 3;
     const GLuint floatsPerColor = 4;
     const GLuint floatsPerCoord = 2; 
+    const GLuint floatsPerNormal = 3;
 
     glGenVertexArrays(1, &mesh.vao); // we can also generate multiple VAOs or buffers at the same time
     glBindVertexArray(mesh.vao);
 
-    size_t prismVertsSize = (prismSides + 1) * 9 * 2 * sizeof(GLfloat);
+    size_t prismVertsSize = (prismSides + 1) * 12 * 2 * sizeof(GLfloat);
     glGenBuffers(1, &mesh.vbos[0]);
     glBindBuffer(GL_ARRAY_BUFFER, mesh.vbos[0]);
     glBufferData(GL_ARRAY_BUFFER, prismVertsSize, prismSideVertex, GL_STATIC_DRAW);
@@ -583,7 +646,7 @@ void UCreatePrismSideMesh(GLMesh& mesh)
 
 
     // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
-    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor + floatsPerCoord);// The number of floats before each
+    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor + floatsPerCoord + floatsPerNormal);// The number of floats before each
 
     // Create Vertex Attribute Pointers
     glVertexAttribPointer(0, floatsPerVertex, GL_FLOAT, GL_FALSE, stride, 0);
@@ -592,20 +655,23 @@ void UCreatePrismSideMesh(GLMesh& mesh)
     glVertexAttribPointer(1, floatsPerColor, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * floatsPerVertex));
     glEnableVertexAttribArray(1);
 
-    glVertexAttribPointer(2, floatsPerColor, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * (floatsPerVertex + floatsPerColor)));
+    glVertexAttribPointer(2, floatsPerCoord, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * (floatsPerVertex + floatsPerColor)));
     glEnableVertexAttribArray(2);
 
+    glVertexAttribPointer(3, floatsPerNormal, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * (floatsPerVertex + floatsPerColor + floatsPerCoord)));
+    glEnableVertexAttribArray(3);
 }
 
 void UCreateBaseMesh(GLMesh& mesh) {
     const GLuint floatsPerVertex = 3;
     const GLuint floatsPerColor = 4;
     const GLuint floatsPerCoord = 2;
+    const GLuint floatsPerNormal = 3;
 
     glGenVertexArrays(1, &mesh.vao); // we can also generate multiple VAOs or buffers at the same time
     glBindVertexArray(mesh.vao);
 
-    size_t baseVertsSize = 9 * 4 * sizeof(GLfloat);
+    size_t baseVertsSize = 12 * 4 * sizeof(GLfloat);
     glGenBuffers(1, &mesh.vbos[0]);
     glBindBuffer(GL_ARRAY_BUFFER, mesh.vbos[0]);
     glBufferData(GL_ARRAY_BUFFER, baseVertsSize, baseVertex, GL_STATIC_DRAW);
@@ -618,7 +684,7 @@ void UCreateBaseMesh(GLMesh& mesh) {
 
 
     // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
-    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor + floatsPerCoord);// The number of floats before each
+    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor + floatsPerCoord + floatsPerNormal);// The number of floats before each
 
     // Create Vertex Attribute Pointers
     glVertexAttribPointer(0, floatsPerVertex, GL_FLOAT, GL_FALSE, stride, 0);
@@ -629,6 +695,9 @@ void UCreateBaseMesh(GLMesh& mesh) {
 
     glVertexAttribPointer(2, floatsPerCoord, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * (floatsPerVertex+floatsPerColor)));
     glEnableVertexAttribArray(2);
+
+    glVertexAttribPointer(3, floatsPerNormal, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * (floatsPerVertex + floatsPerColor + floatsPerCoord)));
+    glEnableVertexAttribArray(3);
 }
 
 
@@ -849,6 +918,12 @@ void GeneratePrismSideVertices() {
         }
 
         prismData.insert(prismData.end(), { 1.0f, static_cast<float>(i) / prismSides });
+        // adding normals
+        GLfloat normalX = cos(theta);
+        GLfloat normalY = sin(theta);
+        GLfloat normalZ = 0.0f;
+        prismData.insert(prismData.end(), { normalX, normalY, normalZ });
+
 
         prismData.push_back(x);
         prismData.push_back(y);
@@ -873,6 +948,9 @@ void GeneratePrismSideVertices() {
         }
 
         prismData.insert(prismData.end(), { 0.0f, static_cast<float>(i) / prismSides });
+        // adding normals
+        normalZ = 0.0f;
+        prismData.insert(prismData.end(), { normalX, normalY, normalZ });
     }
 
     for (int i = 0; i < prismData.size(); i++) {
@@ -960,12 +1038,13 @@ void GeneratePrismTopIndices() {
 
 void GenerateBaseVertices() {
     GLfloat values[] = {
-        10.0f, 0.0f,  10.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-       -10.0f, 0.0f,  10.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-        10.0f, 0.0f, -10.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-       -10.0f, 0.0f, -10.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f
+        // coordinates          // color                    // tex coord    // normals
+        10.0f, 0.0f,  10.0f,    1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 1.0f, 0.0f,
+       -10.0f, 0.0f,  10.0f,    1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 1.0f, 0.0f,
+        10.0f, 0.0f, -10.0f,    1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, 1.0f, 0.0f,
+       -10.0f, 0.0f, -10.0f,    1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, 1.0f, 0.0f
     };
-    for (int i = 0; i < 4 * 9; i++) {
+    for (int i = 0; i < 4 * 12; i++) {
         baseVertex[i] = values[i];
     }
 }
