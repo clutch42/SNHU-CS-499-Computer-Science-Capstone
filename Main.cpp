@@ -39,6 +39,7 @@ namespace
         GLuint vao;         // Handle for the vertex array object
         GLuint vbos[2];     // Handles for the vertex buffer objects
         GLuint nIndices;    // Number of indices of the mesh
+        size_t vertsSize;
     };
 
     // Main GLFW window
@@ -107,7 +108,7 @@ namespace
 bool UInitialize(int, char* [], GLFWwindow** window);
 void UResizeWindow(GLFWwindow* window, int width, int height);
 void UProcessInput(GLFWwindow* window);
-void UCreateBaseMesh(GLMesh& mesh);
+void UCreateMesh(GLMesh& mesh, const GLfloat *vertArray, const GLushort *indexArray);
 void UDestroyMesh(GLMesh& mesh);
 void URender();
 bool UCreateShaderProgram(const char* vtxShaderSource, const char* fragShaderSource, GLuint& programId);
@@ -274,15 +275,21 @@ int main(int argc, char* argv[])
     GenerateBaseIndices();
 
     GLMesh cylinderTopMesh;
-    UCreatePrismTopMesh(cylinderTopMesh); // Calls the function to create the Vertex Buffer Object
+    cylinderTopMesh.vertsSize = sizeof(prismTopVertex);
+    cylinderTopMesh.nIndices = sizeof(prismTopIndex) / sizeof(prismTopIndex[0]);
+    UCreateMesh(cylinderTopMesh, prismTopVertex, prismTopIndex); // Calls the function to create the Vertex Buffer Object
     meshs.push_back(cylinderTopMesh);
 
     GLMesh cylinderSideMesh;
-    UCreatePrismSideMesh(cylinderSideMesh); // Calls the function to create the Vertex Buffer Object
+    cylinderSideMesh.vertsSize = sizeof(prismSideVertex);
+    cylinderSideMesh.nIndices = sizeof(prismSideIndex) / sizeof(prismSideIndex[0]);
+    UCreateMesh(cylinderSideMesh, prismSideVertex, prismSideIndex); // Calls the function to create the Vertex Buffer Object
     meshs.push_back(cylinderSideMesh);
 
     GLMesh baseMesh;
-    UCreateBaseMesh(baseMesh);
+    baseMesh.vertsSize = sizeof(baseVertex);
+    baseMesh.nIndices = sizeof(baseIndex) / sizeof(baseIndex[0]);
+    UCreateMesh(baseMesh, baseVertex, baseIndex);
     meshs.push_back(baseMesh);
 
     // Create the shader program
@@ -574,8 +581,7 @@ void URender()
     glfwSwapBuffers(gWindow);    // Flips the the back buffer with the front buffer every frame.
 }
 
-void UCreatePrismTopMesh(GLMesh& mesh)
-{
+void UCreateMesh(GLMesh& mesh, const GLfloat *vertArray, const GLushort *indexArray) {
     const GLuint floatsPerVertex = 3;
     const GLuint floatsPerColor = 4;
     const GLuint floatsPerCoord = 2;
@@ -584,92 +590,14 @@ void UCreatePrismTopMesh(GLMesh& mesh)
     glGenVertexArrays(1, &mesh.vao); // we can also generate multiple VAOs or buffers at the same time
     glBindVertexArray(mesh.vao);
 
-    size_t prismVertsSize = (prismSides + 1) * 12 * 2 * sizeof(GLfloat);
     glGenBuffers(1, &mesh.vbos[0]);
     glBindBuffer(GL_ARRAY_BUFFER, mesh.vbos[0]);
-    glBufferData(GL_ARRAY_BUFFER, prismVertsSize, prismTopVertex, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, mesh.vertsSize, vertArray, GL_STATIC_DRAW);
 
-    size_t numIndices = sizeof(prismTopIndex) / sizeof(prismTopIndex[0]);
-    mesh.nIndices = sizeof(prismTopIndex);
+
     glGenBuffers(1, &mesh.vbos[1]);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.vbos[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * numIndices, prismTopIndex, GL_STATIC_DRAW);
-  
-    // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
-    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor + floatsPerCoord + floatsPerNormal);// The number of floats before each
-
-    // Create Vertex Attribute Pointers
-    glVertexAttribPointer(0, floatsPerVertex, GL_FLOAT, GL_FALSE, stride, 0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, floatsPerColor, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * floatsPerVertex));
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, floatsPerCoord, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * (floatsPerVertex + floatsPerColor)));
-    glEnableVertexAttribArray(2);
-
-    glVertexAttribPointer(3, floatsPerNormal, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * (floatsPerVertex + floatsPerColor + floatsPerCoord)));
-    glEnableVertexAttribArray(3);
-}
-
-void UCreatePrismSideMesh(GLMesh& mesh)
-{
-    const GLuint floatsPerVertex = 3;
-    const GLuint floatsPerColor = 4;
-    const GLuint floatsPerCoord = 2; 
-    const GLuint floatsPerNormal = 3;
-
-    glGenVertexArrays(1, &mesh.vao); // we can also generate multiple VAOs or buffers at the same time
-    glBindVertexArray(mesh.vao);
-
-    size_t prismVertsSize = (prismSides + 1) * 12 * 2 * sizeof(GLfloat);
-    glGenBuffers(1, &mesh.vbos[0]);
-    glBindBuffer(GL_ARRAY_BUFFER, mesh.vbos[0]);
-    glBufferData(GL_ARRAY_BUFFER, prismVertsSize, prismSideVertex, GL_STATIC_DRAW);
-
-    size_t numIndices = sizeof(prismSideIndex) / sizeof(prismSideIndex[0]);
-    mesh.nIndices = sizeof(prismSideIndex);
-    glGenBuffers(1, &mesh.vbos[1]);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.vbos[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * numIndices, prismSideIndex, GL_STATIC_DRAW);
-
-
-    // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
-    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor + floatsPerCoord + floatsPerNormal);// The number of floats before each
-
-    // Create Vertex Attribute Pointers
-    glVertexAttribPointer(0, floatsPerVertex, GL_FLOAT, GL_FALSE, stride, 0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, floatsPerColor, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * floatsPerVertex));
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, floatsPerCoord, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * (floatsPerVertex + floatsPerColor)));
-    glEnableVertexAttribArray(2);
-
-    glVertexAttribPointer(3, floatsPerNormal, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(GLfloat) * (floatsPerVertex + floatsPerColor + floatsPerCoord)));
-    glEnableVertexAttribArray(3);
-}
-
-void UCreateBaseMesh(GLMesh& mesh) {
-    const GLuint floatsPerVertex = 3;
-    const GLuint floatsPerColor = 4;
-    const GLuint floatsPerCoord = 2;
-    const GLuint floatsPerNormal = 3;
-
-    glGenVertexArrays(1, &mesh.vao); // we can also generate multiple VAOs or buffers at the same time
-    glBindVertexArray(mesh.vao);
-
-    size_t baseVertsSize = 12 * 4 * sizeof(GLfloat);
-    glGenBuffers(1, &mesh.vbos[0]);
-    glBindBuffer(GL_ARRAY_BUFFER, mesh.vbos[0]);
-    glBufferData(GL_ARRAY_BUFFER, baseVertsSize, baseVertex, GL_STATIC_DRAW);
-
-    size_t numIndices = sizeof(baseIndex) / sizeof(baseIndex[0]);
-    mesh.nIndices = sizeof(baseIndex);
-    glGenBuffers(1, &mesh.vbos[1]);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.vbos[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * numIndices, baseIndex, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * mesh.nIndices, indexArray, GL_STATIC_DRAW);
 
 
     // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
