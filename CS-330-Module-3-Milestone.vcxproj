@@ -144,9 +144,13 @@
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="Debug\stb\green_felt.jpg" />
     <Image Include="stb\combinedBottle.jpg" />
+    <Image Include="stb\dog_toy.jpg" />
     <Image Include="stb\gray_fabric.jpg" />
+    <Image Include="stb\green_felt.jpg" />
     <Image Include="stb\offwhite.jpg" />
+    <Image Include="stb\tennis_ball.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

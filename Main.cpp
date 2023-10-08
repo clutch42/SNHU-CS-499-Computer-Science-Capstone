@@ -52,6 +52,9 @@ namespace
     GLuint gTextureId0;
     GLuint gTextureId1;
     GLuint gTextureId2;
+    GLuint gTextureId3;
+    GLuint gTextureId4;
+    GLuint gTextureId5;
     glm::vec2 gUVScale(5.0f, 5.0f);
     GLint gTexWrapMode = GL_REPEAT;
 
@@ -75,7 +78,7 @@ namespace
     GLushort baseIndex[6];
 
     // camera positions
-    glm::vec3 gCameraPos = glm::vec3(0.0f, 0.0f, 15.0f);
+    glm::vec3 gCameraPos = glm::vec3(0.0f, 3.0f, 15.0f);
     glm::vec3 gCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 gCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -135,7 +138,6 @@ void UMouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 void UMouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 
 bool UCreateTexture(const char* filename, GLuint& textureId);
-//bool UCreateSecondTexture(const char* filename, GLuint& textureId);
 void UDestroyTexture(GLuint textureId);
 
 // Images are loaded with Y axis going down, but OpenGL's Y axis goes up, so let's flip it
@@ -200,6 +202,9 @@ const GLchar* fragmentShaderSource = GLSL(330,
     uniform sampler2D textureSampler;            // Texture sampler
     uniform sampler2D textureSampler2;
     uniform sampler2D textureSampler3;
+    uniform sampler2D textureSampler4;
+    uniform sampler2D textureSampler5;
+    uniform sampler2D textureSampler6;
     uniform vec2 uvScale;
 
     uniform vec4 overrideColor;         // Override color
@@ -257,11 +262,17 @@ const GLchar* fragmentShaderSource = GLSL(330,
         vec4 texColor = texture(textureSampler, fragTexCoord * uvScale);
         vec4 texColor2 = texture(textureSampler2, fragTexCoord);
         vec4 texColor3 = texture(textureSampler3, fragTexCoord);
+        vec4 texColor4 = texture(textureSampler4, fragTexCoord);
+        vec4 texColor5 = texture(textureSampler5, fragTexCoord);
+        vec4 texColor6 = texture(textureSampler6, fragTexCoord);
 
         // If texture is available, use it; otherwise, use the vertex color
         finalColor.rgb = (texColor.rgb == vec3(0.0)) ? finalColor.rgb : texColor.rgb * phong;
         finalColor.rgb = (texColor2.rgb == vec3(0.0)) ? finalColor.rgb : texColor2.rgb * phong;
         finalColor.rgb = (texColor3.rgb == vec3(0.0)) ? finalColor.rgb : texColor3.rgb * phong;
+        finalColor.rgb = (texColor4.rgb == vec3(0.0)) ? finalColor.rgb : texColor4.rgb * phong;
+        finalColor.rgb = (texColor5.rgb == vec3(0.0)) ? finalColor.rgb : texColor5.rgb * phong;
+        finalColor.rgb = (texColor6.rgb == vec3(0.0)) ? finalColor.rgb : texColor6.rgb * phong;
 
         // Set the alpha value
         finalColor.a = 1.0; // Or use a different alpha value if needed
@@ -341,6 +352,28 @@ int main(int argc, char* argv[])
         cout << "Failed to load texture " << texFilename3 << endl;
         return EXIT_FAILURE;
     }
+
+    const char* texFilename4 = "stb/green_felt.jpg";
+    if (!UCreateTexture(texFilename4, gTextureId3))
+    {
+        cout << "Failed to load texture " << texFilename4 << endl;
+        return EXIT_FAILURE;
+    }
+
+    const char* texFilename5 = "stb/dog_toy.jpg";
+    if (!UCreateTexture(texFilename5, gTextureId4))
+    {
+        cout << "Failed to load texture " << texFilename5 << endl;
+        return EXIT_FAILURE;
+    }
+
+    const char* texFilename6 = "stb/tennis_ball.jpg";
+    if (!UCreateTexture(texFilename6, gTextureId5))
+    {
+        cout << "Failed to load texture " << texFilename6 << endl;
+        return EXIT_FAILURE;
+    }
+
     // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
     glUseProgram(gProgramId);
     // We set the texture as texture unit 0
@@ -351,6 +384,15 @@ int main(int argc, char* argv[])
 
     // We set the texture as texture unit 2
     glUniform1i(glGetUniformLocation(gProgramId, "textureSampler3"), 2);
+
+    // We set the texture as texture unit 3
+    glUniform1i(glGetUniformLocation(gProgramId, "textureSampler4"), 3);
+
+    // We set the texture as texture unit 4
+    glUniform1i(glGetUniformLocation(gProgramId, "textureSampler5"), 4);
+
+    // We set the texture as texture unit 5
+    glUniform1i(glGetUniformLocation(gProgramId, "textureSampler6"), 5);
 
     // Sets the background color of the window to black (it will be implicitely used by glClear)
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -552,7 +594,7 @@ void URender()
     // draw bottom of shampoo bottle with texture
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, gTextureId1);
-    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, -2.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(1).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(1).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
@@ -562,7 +604,7 @@ void URender()
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, gTextureId2);
     glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 0.0f, 0.0f, 1.0f);
-    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, -2.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(0).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
@@ -572,7 +614,7 @@ void URender()
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, gTextureId2);
     glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 0.0f, 0.0f, 1.0f);
-    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 4.0f)) * glm::scale(glm::vec3(0.33f, 0.33f, 0.8f));
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 6.0f)) * glm::scale(glm::vec3(0.33f, 0.33f, 0.8f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(0).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
@@ -582,7 +624,7 @@ void URender()
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, gTextureId2);
     glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 0.0f, 1.0f, 0.0f, 1.0f);
-    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 4.0f)) * glm::scale(glm::vec3(0.33f, 0.33f, 0.8f));
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 6.0f)) * glm::scale(glm::vec3(0.33f, 0.33f, 0.8f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(1).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(1).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
@@ -592,12 +634,30 @@ void URender()
     glUniform2fv(UVScaleLoc, 1, glm::value_ptr(gUVScale));
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, gTextureId0);
-    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f));
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(2).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(2).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
     glBindTexture(GL_TEXTURE_2D, 0);
     
+    // draw sides of cube
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, gTextureId3);
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(4.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(2.0f, 0.5f, 1.0f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glBindVertexArray(meshs.at(3).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(3).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // draw main faces of cube
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, gTextureId4);
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(4.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(2.0f, 0.5f, 1.0f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glBindVertexArray(meshs.at(4).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(4).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    glBindTexture(GL_TEXTURE_2D, 0);
+
     // Deactivate the Vertex Array Object
     glBindVertexArray(0);
 
@@ -1095,25 +1155,25 @@ void UMouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 void GenerateCubeSideVertices() {
     GLfloat values[] = {
         // coordinates          // color                    // tex coord    // normals
-       1.0f, 1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     1.0f, 0.0f, 0.0f,
-       1.0f, 1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     1.0f, 0.0f, 0.0f,
-       1.0f, -1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     1.0f, 0.0f, 0.0f,
-       1.0f, -1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     1.0f, 0.0f, 0.0f,
+        1.0f,  2.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     1.0f, 0.0f, 0.0f,
+        1.0f,  2.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     1.0f, 0.0f, 0.0f,
+        1.0f, 0.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     1.0f, 0.0f, 0.0f,
+        1.0f, 0.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     1.0f, 0.0f, 0.0f,
 
-       -1.0f, 1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     -1.0f, 0.0f, 0.0f,
-       -1.0f, 1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     -1.0f, 0.0f, 0.0f,
-       -1.0f, -1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     -1.0f, 0.0f, 0.0f,
-       -1.0f, -1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     -1.0f, 0.0f, 0.0f,
+       -1.0f,  2.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     -1.0f, 0.0f, 0.0f,
+       -1.0f,  2.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     -1.0f, 0.0f, 0.0f,
+       -1.0f, 0.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     -1.0f, 0.0f, 0.0f,
+       -1.0f, 0.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     -1.0f, 0.0f, 0.0f,
 
-        1.0f, 1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 0.0f, 1.0f,
-        -1.0f, 1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 0.0f, 1.0f,
-        1.0f, -1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 0.0f, 1.0f,
-        -1.0f, -1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 0.0f, 1.0f,
+        1.0f,  2.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, 0.0f, 1.0f,
+       -1.0f,  2.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, 0.0f, 1.0f,
+        1.0f, 0.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 0.0f, 1.0f,
+       -1.0f, 0.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 0.0f, 1.0f,
 
-         1.0f, 1.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 0.0f, -1.0f,
-        -1.0f, 1.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 0.0f, -1.0f,
-        1.0f, -1.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 0.0f, -1.0f,
-        -1.0f, -1.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 0.0f, -1.0f,
+        1.0f,  2.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 0.0f, -1.0f,
+       -1.0f,  2.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 0.0f, -1.0f,
+        1.0f, 0.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, 0.0f, -1.0f,
+       -1.0f, 0.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, 0.0f, -1.0f
     };
     for (int i = 0; i < 4 * 4 * 12; i++) {
         cubeSideVertex[i] = values[i];
@@ -1123,15 +1183,15 @@ void GenerateCubeSideVertices() {
 void GenerateCubeMainVertices() {
     GLfloat values[] = {
         // coordinates          // color                    // tex coord    // normals
-        1.0f, 1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 1.0f, 0.0f,
-       -1.0f, 1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 1.0f, 0.0f,
-        1.0f, 1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, 1.0f, 0.0f,
-       -1.0f, 1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, 1.0f, 0.0f,
+        1.0f,  2.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 1.0f, 0.0f,
+       -1.0f,  2.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 1.0f, 0.0f,
+        1.0f,  2.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, 1.0f, 0.0f,
+       -1.0f,  2.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, 1.0f, 0.0f,
 
-        1.0f, -1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, -1.0f, 0.0f,
-       -1.0f, -1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, -1.0f, 0.0f,
-        1.0f, -1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, -1.0f, 0.0f,
-       -1.0f, -1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, -1.0f, 0.0f
+        1.0f, 0.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, -1.0f, 0.0f,
+       -1.0f, 0.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, -1.0f, 0.0f,
+        1.0f, 0.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, -1.0f, 0.0f,
+       -1.0f, 0.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, -1.0f, 0.0f
     };
 
     for (int i = 0; i < 4 * 2 * 12; i++) {
