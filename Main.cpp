@@ -67,6 +67,8 @@ namespace
     // variables for cube
     GLfloat cubeSideVertex[4 * 4 * 12];
     GLfloat cubeMainVertex[4 * 2 * 12];
+    GLushort cubeSideIndex[6 * 4];
+    GLushort cubeMainIndex[6 * 2];
 
     // variables for plane
     GLfloat baseVertex[4*12];
@@ -122,6 +124,8 @@ void GenerateBaseVertices();
 void GenerateBaseIndices();
 void GenerateCubeSideVertices();
 void GenerateCubeMainVertices();
+void GenerateCubeSideIndices();
+void GenerateCubeMainIndices();
 void GeneratePrismSideVertices();
 void GeneratePrismSideIndices();
 void GeneratePrismTopIndices();
@@ -271,7 +275,6 @@ int main(int argc, char* argv[])
 
     GeneratePrismSideVertices();
     GeneratePrismSideIndices();
-
     GeneratePrismTopVertices();
     GeneratePrismTopIndices();
     
@@ -279,7 +282,9 @@ int main(int argc, char* argv[])
     GenerateBaseIndices();
 
     GenerateCubeSideVertices();
+    GenerateCubeSideIndices();
     GenerateCubeMainVertices();
+    GenerateCubeMainIndices();
 
     GLMesh cylinderTopMesh;
     cylinderTopMesh.vertsSize = sizeof(prismTopVertex);
@@ -298,6 +303,18 @@ int main(int argc, char* argv[])
     baseMesh.nIndices = sizeof(baseIndex) / sizeof(baseIndex[0]);
     UCreateMesh(baseMesh, baseVertex, baseIndex);
     meshs.push_back(baseMesh);
+
+    GLMesh cubeSideMesh;
+    cubeSideMesh.vertsSize = sizeof(cubeSideVertex);
+    cubeSideMesh.nIndices = sizeof(cubeSideIndex) / sizeof(cubeSideIndex[0]);
+    UCreateMesh(cubeSideMesh, cubeSideVertex, cubeSideIndex);
+    meshs.push_back(cubeSideMesh);
+
+    GLMesh cubeMainMesh;
+    cubeMainMesh.vertsSize = sizeof(cubeMainVertex);
+    cubeMainMesh.nIndices = sizeof(cubeMainIndex) / sizeof(cubeMainIndex[0]);
+    UCreateMesh(cubeMainMesh, cubeMainVertex, cubeMainIndex);
+    meshs.push_back(cubeMainMesh);
 
     // Create the shader program
     if (!UCreateShaderProgram(vertexShaderSource, fragmentShaderSource, gProgramId))
@@ -1119,5 +1136,37 @@ void GenerateCubeMainVertices() {
 
     for (int i = 0; i < 4 * 2 * 12; i++) {
         cubeMainVertex[i] = values[i];
+    }
+}
+
+void GenerateCubeSideIndices() {
+    GLushort values[] = {
+        0, 1, 2,
+        1, 2, 3,
+
+        4, 5, 6,
+        5, 6, 7,
+        
+        8, 9, 10, 
+        9, 10, 11,
+
+        12, 13, 14,
+        13, 14, 15
+    };
+    for (int i = 0; i < 6 * 4; i++) {
+        cubeSideIndex[i] = values[i];
+    }
+}
+
+void GenerateCubeMainIndices() {
+    GLushort values[] = {
+        0, 1, 2,
+        1, 2, 3, 
+
+        4, 5, 6,
+        5, 6, 7
+    };
+    for (int i = 0; i < 6 * 2; i++) {
+        cubeMainIndex[i] = values[i];
     }
 }
