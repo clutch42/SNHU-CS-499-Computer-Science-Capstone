@@ -64,6 +64,10 @@ namespace
     GLushort prismSideIndex[prismSides * 6];
     GLushort prismTopIndex[prismSides * 6];
 
+    // variables for cube
+    GLfloat cubeSideVertex[4 * 4 * 12];
+    GLfloat cubeMainVertex[4 * 2 * 12];
+
     // variables for plane
     GLfloat baseVertex[4*12];
     GLushort baseIndex[6];
@@ -116,11 +120,11 @@ void UDestroyShaderProgram(GLuint programId);
 void GeneratePrismTopVertices();
 void GenerateBaseVertices();
 void GenerateBaseIndices();
+void GenerateCubeSideVertices();
+void GenerateCubeMainVertices();
 void GeneratePrismSideVertices();
 void GeneratePrismSideIndices();
-void UCreatePrismSideMesh(GLMesh& mesh);
 void GeneratePrismTopIndices();
-void UCreatePrismTopMesh(GLMesh& mesh);
 
 void UMousePositionCallback(GLFWwindow* window, double xpos, double ypos);
 void UMouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
@@ -273,6 +277,9 @@ int main(int argc, char* argv[])
     
     GenerateBaseVertices();
     GenerateBaseIndices();
+
+    GenerateCubeSideVertices();
+    GenerateCubeMainVertices();
 
     GLMesh cylinderTopMesh;
     cylinderTopMesh.vertsSize = sizeof(prismTopVertex);
@@ -932,6 +939,7 @@ void GenerateBaseVertices() {
         baseVertex[i] = values[i];
     }
 }
+
 void GenerateBaseIndices() {
     GLushort values[] = {
         0, 1, 2,
@@ -1064,5 +1072,52 @@ void UMouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
     default:
         cout << "Unhandled mouse button event" << endl;
         break;
+    }
+}
+
+void GenerateCubeSideVertices() {
+    GLfloat values[] = {
+        // coordinates          // color                    // tex coord    // normals
+       1.0f, 1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     1.0f, 0.0f, 0.0f,
+       1.0f, 1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     1.0f, 0.0f, 0.0f,
+       1.0f, -1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     1.0f, 0.0f, 0.0f,
+       1.0f, -1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     1.0f, 0.0f, 0.0f,
+
+       -1.0f, 1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     -1.0f, 0.0f, 0.0f,
+       -1.0f, 1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     -1.0f, 0.0f, 0.0f,
+       -1.0f, -1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     -1.0f, 0.0f, 0.0f,
+       -1.0f, -1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     -1.0f, 0.0f, 0.0f,
+
+        1.0f, 1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 0.0f, 1.0f,
+        -1.0f, 1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 0.0f, 1.0f,
+        1.0f, -1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 0.0f, 1.0f,
+        -1.0f, -1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 0.0f, 1.0f,
+
+         1.0f, 1.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 0.0f, -1.0f,
+        -1.0f, 1.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 0.0f, -1.0f,
+        1.0f, -1.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 0.0f, -1.0f,
+        -1.0f, -1.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 0.0f, -1.0f,
+    };
+    for (int i = 0; i < 4 * 4 * 12; i++) {
+        cubeSideVertex[i] = values[i];
+    }
+}
+
+void GenerateCubeMainVertices() {
+    GLfloat values[] = {
+        // coordinates          // color                    // tex coord    // normals
+        1.0f, 1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 1.0f, 0.0f,
+       -1.0f, 1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 1.0f, 0.0f,
+        1.0f, 1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, 1.0f, 0.0f,
+       -1.0f, 1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, 1.0f, 0.0f,
+
+        1.0f, -1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, -1.0f, 0.0f,
+       -1.0f, -1.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, -1.0f, 0.0f,
+        1.0f, -1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, -1.0f, 0.0f,
+       -1.0f, -1.0f, -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, -1.0f, 0.0f
+    };
+
+    for (int i = 0; i < 4 * 2 * 12; i++) {
+        cubeMainVertex[i] = values[i];
     }
 }
