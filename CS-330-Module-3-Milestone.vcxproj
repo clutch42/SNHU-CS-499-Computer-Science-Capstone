@@ -148,9 +148,12 @@
     <Image Include="stb\combinedBottle.jpg" />
     <Image Include="stb\dog_toy.jpg" />
     <Image Include="stb\gray_fabric.jpg" />
+    <Image Include="stb\gray_fabric2.jpg" />
+    <Image Include="stb\gray_fabric3.jpg" />
     <Image Include="stb\green_felt.jpg" />
     <Image Include="stb\offwhite.jpg" />
     <Image Include="stb\tennis_ball.jpg" />
+    <Image Include="stb\toy_pattern.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

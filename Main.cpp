@@ -55,13 +55,18 @@ namespace
     GLuint gTextureId3;
     GLuint gTextureId4;
     GLuint gTextureId5;
-    glm::vec2 gUVScale(5.0f, 5.0f);
+    GLuint gTextureId6;
+    glm::vec2 gUVScale(2.0f, 10.0f);
+    glm::vec2 gUVScale2(10.0f, 10.0f);
     GLint gTexWrapMode = GL_REPEAT;
 
     // variables for prism
     const int prismRad = 1;
     const int prismHeight = 1;
     const int prismSides = 30;
+    const double torusDistFromCenter = 2.5;
+    const double torusRadius = 0.5;
+    const int torusSides = 30;
     GLfloat prismTopVertex[(prismSides + 1) * 2 * 12];
     GLfloat prismSideVertex[(prismSides + 1) * 2 * 12];
     GLushort prismSideIndex[prismSides * 6];
@@ -76,6 +81,10 @@ namespace
     // variables for plane
     GLfloat baseVertex[4*12];
     GLushort baseIndex[6];
+
+    // variables for torus
+    GLfloat torusVertex[(torusSides + 1) * (torusSides + 1) * 12];
+    GLushort torusIndex[6*torusSides*torusSides];
 
     // camera positions
     glm::vec3 gCameraPos = glm::vec3(0.0f, 3.0f, 15.0f);
@@ -107,6 +116,7 @@ namespace
     // diffuse lamp intensity
     float diffuseIntensityValue = 0.5;
     float diffuseIntensityValue2 = 0.5;
+    float specularIntensity = 0.8f;
 }
 
 /* User-defined Function prototypes to:
@@ -132,6 +142,8 @@ void GenerateCubeMainIndices();
 void GeneratePrismSideVertices();
 void GeneratePrismSideIndices();
 void GeneratePrismTopIndices();
+void GenerateTorusVertices();
+void GenerateTorusIndices();
 
 void UMousePositionCallback(GLFWwindow* window, double xpos, double ypos);
 void UMouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
@@ -205,7 +217,9 @@ const GLchar* fragmentShaderSource = GLSL(330,
     uniform sampler2D textureSampler4;
     uniform sampler2D textureSampler5;
     uniform sampler2D textureSampler6;
+    uniform sampler2D textureSampler7;
     uniform vec2 uvScale;
+    uniform vec2 uvScale2;
 
     uniform vec4 overrideColor;         // Override color
 
@@ -216,6 +230,7 @@ const GLchar* fragmentShaderSource = GLSL(330,
     uniform vec3 viewPosition;
     uniform float diffuseIntensity;
     uniform float diffuseIntensity2;
+    uniform float specularIntensity;
 
     void main()
     {
@@ -235,7 +250,7 @@ const GLchar* fragmentShaderSource = GLSL(330,
         vec3 diffuse2 = impact2 * lightColor2; // Generate diffuse light color.
 
         //Calculate Specular lighting*/
-        float specularIntensity = 0.8f; // Set specular light strength.
+        //float specularIntensity = 0.8f; // Set specular light strength.
         float highlightSize = 16.0f; // Set specular highlight size.
         vec3 viewDir = normalize(viewPosition - vertexFragmentPos); // Calculate view direction.
 
@@ -259,12 +274,13 @@ const GLchar* fragmentShaderSource = GLSL(330,
         finalColor.rgb = (overrideColor.a > 0.0) ? overrideColor.rgb * phong : vertexColor.rgb * phong;
 
         // Sample texture using texture coordinates if textureSampler is set
-        vec4 texColor = texture(textureSampler, fragTexCoord * uvScale);
+        vec4 texColor = texture(textureSampler, fragTexCoord * uvScale2);
         vec4 texColor2 = texture(textureSampler2, fragTexCoord);
         vec4 texColor3 = texture(textureSampler3, fragTexCoord);
         vec4 texColor4 = texture(textureSampler4, fragTexCoord);
         vec4 texColor5 = texture(textureSampler5, fragTexCoord);
         vec4 texColor6 = texture(textureSampler6, fragTexCoord);
+        vec4 texColor7 = texture(textureSampler7, fragTexCoord * uvScale);
 
         // If texture is available, use it; otherwise, use the vertex color
         finalColor.rgb = (texColor.rgb == vec3(0.0)) ? finalColor.rgb : texColor.rgb * phong;
@@ -273,6 +289,7 @@ const GLchar* fragmentShaderSource = GLSL(330,
         finalColor.rgb = (texColor4.rgb == vec3(0.0)) ? finalColor.rgb : texColor4.rgb * phong;
         finalColor.rgb = (texColor5.rgb == vec3(0.0)) ? finalColor.rgb : texColor5.rgb * phong;
         finalColor.rgb = (texColor6.rgb == vec3(0.0)) ? finalColor.rgb : texColor6.rgb * phong;
+        finalColor.rgb = (texColor7.rgb == vec3(0.0)) ? finalColor.rgb : texColor7.rgb * phong;
 
         // Set the alpha value
         finalColor.a = 1.0; // Or use a different alpha value if needed
@@ -296,6 +313,9 @@ int main(int argc, char* argv[])
     GenerateCubeSideIndices();
     GenerateCubeMainVertices();
     GenerateCubeMainIndices();
+
+    GenerateTorusVertices();
+    GenerateTorusIndices();
 
     GLMesh cylinderTopMesh;
     cylinderTopMesh.vertsSize = sizeof(prismTopVertex);
@@ -327,12 +347,20 @@ int main(int argc, char* argv[])
     UCreateMesh(cubeMainMesh, cubeMainVertex, cubeMainIndex);
     meshs.push_back(cubeMainMesh);
 
+    GLMesh torusMesh;
+    torusMesh.vertsSize = sizeof(torusVertex);
+    cout << "vertex:  " << torusMesh.vertsSize/sizeof(GLfloat) << endl;
+    torusMesh.nIndices = sizeof(torusIndex) / sizeof(torusIndex[0]);
+    cout << "index:  " << torusMesh.nIndices << endl;
+    UCreateMesh(torusMesh, torusVertex, torusIndex);
+    meshs.push_back(torusMesh);
+
     // Create the shader program
     if (!UCreateShaderProgram(vertexShaderSource, fragmentShaderSource, gProgramId))
         return EXIT_FAILURE;
 
     // Load textures
-    const char* texFilename = "stb/gray_fabric.jpg";
+    const char* texFilename = "stb/gray_fabric3.jpg";
     if (!UCreateTexture(texFilename, gTextureId0))
     {
         cout << "Failed to load texture " << texFilename << endl;
@@ -374,6 +402,13 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
+    const char* texFilename7 = "stb/toy_pattern.jpg";
+    if (!UCreateTexture(texFilename7, gTextureId6))
+    {
+        cout << "Failed to load texture " << texFilename7 << endl;
+        return EXIT_FAILURE;
+    }
+
     // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
     glUseProgram(gProgramId);
     // We set the texture as texture unit 0
@@ -393,6 +428,9 @@ int main(int argc, char* argv[])
 
     // We set the texture as texture unit 5
     glUniform1i(glGetUniformLocation(gProgramId, "textureSampler6"), 5);
+
+    // We set the texture as texture unit 6
+    glUniform1i(glGetUniformLocation(gProgramId, "textureSampler7"), 6);
 
     // Sets the background color of the window to black (it will be implicitely used by glClear)
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -553,6 +591,7 @@ void URender()
     GLint projLoc = glGetUniformLocation(gProgramId, "projection");
     GLint overrideColorLoc = glGetUniformLocation(gProgramId, "overrideColor");
     GLint UVScaleLoc = glGetUniformLocation(gProgramId, "uvScale");
+    GLint UVScaleLoc2 = glGetUniformLocation(gProgramId, "uvScale2");
 
     GLint lightColorLoc = glGetUniformLocation(gProgramId, "lightColor");
     GLint lightColorLoc2 = glGetUniformLocation(gProgramId, "lightColor2");
@@ -561,6 +600,7 @@ void URender()
     GLint viewPositionLoc = glGetUniformLocation(gProgramId, "viewPosition");
     GLint diffuseIntensityLocation = glGetUniformLocation(gProgramId, "diffuseIntensity");
     GLint diffuseIntensityLocation2 = glGetUniformLocation(gProgramId, "diffuseIntensity2");
+    GLint specularIntensityLocation = glGetUniformLocation(gProgramId, "specularIntensity");
 
     // Pass color, light, and camera data to the Cube Shader program's corresponding uniforms
     glUniform3f(lightColorLoc, gLightColor.r, gLightColor.g, gLightColor.b);
@@ -591,7 +631,9 @@ void URender()
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-    // draw bottom of shampoo bottle with texture
+    // draw body of shampoo bottle with texture
+    specularIntensity = 0.8f;
+    glUniform1f(specularIntensityLocation, specularIntensity);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, gTextureId1);
     model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
@@ -601,29 +643,35 @@ void URender()
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // draw top and bottom of body of bottle
+    specularIntensity = 0.8f;
+    glUniform1f(specularIntensityLocation, specularIntensity);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, gTextureId2);
-    glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 0.0f, 0.0f, 1.0f);
+    //glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 0.0f, 0.0f, 1.0f);
     model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(0).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    // draw top (cap) of shampoo bottle change color to white
+    // draw top (cap) of shampoo bottle
+    specularIntensity = 0.8f;
+    glUniform1f(specularIntensityLocation, specularIntensity);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, gTextureId2);
-    glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 0.0f, 0.0f, 1.0f);
+    //glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 0.0f, 0.0f, 1.0f);
     model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 6.0f)) * glm::scale(glm::vec3(0.33f, 0.33f, 0.8f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(0).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    // draw sides (cap) of shampoo bottle change color to white
+    // draw sides (cap) of shampoo bottle
+    specularIntensity = 0.8f;
+    glUniform1f(specularIntensityLocation, specularIntensity);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, gTextureId2);
-    glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 0.0f, 1.0f, 0.0f, 1.0f);
+    //glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 0.0f, 1.0f, 0.0f, 1.0f);
     model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 6.0f)) * glm::scale(glm::vec3(0.33f, 0.33f, 0.8f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(1).vao);
@@ -631,7 +679,9 @@ void URender()
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // draw base
-    glUniform2fv(UVScaleLoc, 1, glm::value_ptr(gUVScale));
+    specularIntensity = 0.4f;
+    glUniform1f(specularIntensityLocation, specularIntensity);
+    glUniform2fv(UVScaleLoc2, 1, glm::value_ptr(gUVScale2));
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, gTextureId0);
     model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f));
@@ -640,22 +690,38 @@ void URender()
     glDrawElements(GL_TRIANGLES, meshs.at(2).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    // draw sides of cube
+    // draw sides of dog toy
+    specularIntensity = 0.2f;
+    glUniform1f(specularIntensityLocation, specularIntensity);
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, gTextureId3);
-    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(4.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(2.0f, 0.5f, 1.0f));
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(4.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(5.33f, 1.17f, 2.83f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(3).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(3).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    // draw main faces of cube
+    // draw main faces of dog toy
+    specularIntensity = 0.2f;
+    glUniform1f(specularIntensityLocation, specularIntensity);
+    glUniform2fv(UVScaleLoc, 1, glm::value_ptr(gUVScale));
     glActiveTexture(GL_TEXTURE4);
     glBindTexture(GL_TEXTURE_2D, gTextureId4);
-    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(4.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(2.0f, 0.5f, 1.0f));
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(4.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(5.33f, 1.17f, 2.83f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(4).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(4).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // draw torus toy
+    specularIntensity = 0.2f;
+    glUniform1f(specularIntensityLocation, specularIntensity);
+    glActiveTexture(GL_TEXTURE6);
+    glBindTexture(GL_TEXTURE_2D, gTextureId6);
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(-4.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.833f, 1.0f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glBindVertexArray(meshs.at(5).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(5).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // Deactivate the Vertex Array Object
@@ -1155,25 +1221,25 @@ void UMouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 void GenerateCubeSideVertices() {
     GLfloat values[] = {
         // coordinates          // color                    // tex coord    // normals
-        1.0f,  2.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     1.0f, 0.0f, 0.0f,
-        1.0f,  2.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     1.0f, 0.0f, 0.0f,
-        1.0f, 0.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     1.0f, 0.0f, 0.0f,
-        1.0f, 0.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     1.0f, 0.0f, 0.0f,
+        0.5f,  1.0f,  0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     1.0f, 0.0f, 0.0f,
+        0.5f,  1.0f,  -0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     1.0f, 0.0f, 0.0f,
+        0.5f, 0.0f,  0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     1.0f, 0.0f, 0.0f,
+        0.5f, 0.0f,  -0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     1.0f, 0.0f, 0.0f,
 
-       -1.0f,  2.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     -1.0f, 0.0f, 0.0f,
-       -1.0f,  2.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     -1.0f, 0.0f, 0.0f,
-       -1.0f, 0.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     -1.0f, 0.0f, 0.0f,
-       -1.0f, 0.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     -1.0f, 0.0f, 0.0f,
+       -0.5f,  1.0f,  0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     -1.0f, 0.0f, 0.0f,
+       -0.5f,  1.0f,  -0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     -1.0f, 0.0f, 0.0f,
+       -0.5f, 0.0f,  0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     -1.0f, 0.0f, 0.0f,
+       -0.5f, 0.0f,  -0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     -1.0f, 0.0f, 0.0f,
 
-        1.0f,  2.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, 0.0f, 1.0f,
-       -1.0f,  2.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, 0.0f, 1.0f,
-        1.0f, 0.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 0.0f, 1.0f,
-       -1.0f, 0.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 0.0f, 1.0f,
+        0.5f,  1.0f,  0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, 0.0f, 1.0f,
+       -0.5f,  1.0f,  0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, 0.0f, 1.0f,
+        0.5f, 0.0f,  0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 0.0f, 1.0f,
+       -0.5f, 0.0f,  0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 0.0f, 1.0f,
 
-        1.0f,  2.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 0.0f, -1.0f,
-       -1.0f,  2.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 0.0f, -1.0f,
-        1.0f, 0.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, 0.0f, -1.0f,
-       -1.0f, 0.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, 0.0f, -1.0f
+        0.5f,  1.0f,  -0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 0.0f, -1.0f,
+       -0.5f,  1.0f,  -0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 0.0f, -1.0f,
+        0.5f, 0.0f,  -0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, 0.0f, -1.0f,
+       -0.5f, 0.0f,  -0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, 0.0f, -1.0f
     };
     for (int i = 0; i < 4 * 4 * 12; i++) {
         cubeSideVertex[i] = values[i];
@@ -1183,15 +1249,15 @@ void GenerateCubeSideVertices() {
 void GenerateCubeMainVertices() {
     GLfloat values[] = {
         // coordinates          // color                    // tex coord    // normals
-        1.0f,  2.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 1.0f, 0.0f,
-       -1.0f,  2.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 1.0f, 0.0f,
-        1.0f,  2.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, 1.0f, 0.0f,
-       -1.0f,  2.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, 1.0f, 0.0f,
+        0.5f,  1.0f,  0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, 1.0f, 0.0f,
+       -0.5f,  1.0f,  0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, 1.0f, 0.0f,
+        0.5f,  1.0f,  -0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, 1.0f, 0.0f,
+       -0.5f,  1.0f,  -0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, 1.0f, 0.0f,
 
-        1.0f, 0.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, -1.0f, 0.0f,
-       -1.0f, 0.0f,  1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, -1.0f, 0.0f,
-        1.0f, 0.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, -1.0f, 0.0f,
-       -1.0f, 0.0f,  -1.0f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, -1.0f, 0.0f
+        0.5f, 0.0f,  0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 1.0f,     0.0f, -1.0f, 0.0f,
+       -0.5f, 0.0f,  0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 1.0f,     0.0f, -1.0f, 0.0f,
+        0.5f, 0.0f,  -0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     1.0f, 0.0f,     0.0f, -1.0f, 0.0f,
+       -0.5f, 0.0f,  -0.5f,      1.0f, 1.0f, 1.0f, 1.0f,     0.0f, 0.0f,     0.0f, -1.0f, 0.0f
     };
 
     for (int i = 0; i < 4 * 2 * 12; i++) {
@@ -1228,5 +1294,75 @@ void GenerateCubeMainIndices() {
     };
     for (int i = 0; i < 6 * 2; i++) {
         cubeMainIndex[i] = values[i];
+    }
+}
+
+void GenerateTorusVertices() {
+    vector<GLfloat> torusData;
+    for (int i = 0; i < torusSides + 1; ++i) {
+        GLfloat theta = 2.0f * M_PI * static_cast<float>(i) / torusSides;
+        for (int j = 0; j < torusSides + 1; ++j) {
+            GLfloat phi = 2.0f * M_PI * static_cast<float>(j) / torusSides;
+
+            GLfloat x = (torusDistFromCenter + torusRadius + torusRadius * cos(phi)) * cos(theta);
+            GLfloat y = torusRadius * sin(phi) + torusRadius;
+            GLfloat z = (torusDistFromCenter + torusRadius + torusRadius * cos(phi)) * sin(theta);
+
+            // cout << "(" << x << ", " << y << ", " << z << ")\n";
+
+            torusData.push_back(x);
+            torusData.push_back(y);
+            torusData.push_back(z);
+
+            // insert color (white)
+            torusData.insert(torusData.end(), { 1.0f, 1.0f, 1.0f, 1.0f });
+
+            // insert texture coord
+            torusData.insert(torusData.end(), { static_cast<float>(j) / torusSides, static_cast<float>(i) / torusSides });
+
+            // adding normals
+
+            GLfloat normalX = cos(theta) * cos(phi);
+            GLfloat normalY = sin(theta);
+            GLfloat normalZ = sin(theta)* cos(phi);
+
+            torusData.insert(torusData.end(), { normalX, normalY, normalZ });
+
+        }
+    }
+
+    for (int i = 0; i < torusData.size(); i++) {
+        torusVertex[i] = torusData[i];
+    }
+}
+
+void GenerateTorusIndices() {
+    std::vector<GLushort> torusData;
+
+    for (int i = 0; i < torusSides; ++i) {
+        for (int j = 0; j < torusSides; ++j) {
+            // Calculate indices for the quad
+            GLuint index0 = i * (torusSides + 1) + j;
+            GLuint index1 = index0 + 1;
+            GLuint index2 = (i + 1) * (torusSides + 1) + j;
+            GLuint index3 = index2 + 1;
+
+            // Form two triangles from the quad
+            torusData.push_back(index0);
+            torusData.push_back(index1);
+            torusData.push_back(index2);
+
+            //cout << index0 << " " << index1 << " " << index2 << endl;
+
+            torusData.push_back(index1);
+            torusData.push_back(index3);
+            torusData.push_back(index2);
+            
+            //cout << index1 << " " << index3 << " " << index2 << endl;
+        }
+    }
+
+    for (int i = 0; i < torusData.size(); i++) {
+        torusIndex[i] = torusData[i];
     }
 }
