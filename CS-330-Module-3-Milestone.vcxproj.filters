@@ -46,9 +46,6 @@
     <Image Include="stb\dog_toy.jpg">
       <Filter>Source Files\stb</Filter>
     </Image>
-    <Image Include="stb\tennis_ball.jpg">
-      <Filter>Source Files\stb</Filter>
-    </Image>
     <Image Include="stb\toy_pattern.jpg">
       <Filter>Source Files\stb</Filter>
     </Image>
@@ -56,6 +53,9 @@
       <Filter>Source Files\stb</Filter>
     </Image>
     <Image Include="stb\gray_fabric3.jpg">
+      <Filter>Source Files\stb</Filter>
+    </Image>
+    <Image Include="stb\tennis_ball2.jpg">
       <Filter>Source Files\stb</Filter>
     </Image>
   </ItemGroup>

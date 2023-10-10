@@ -300,7 +300,7 @@ const GLchar* fragmentShaderSource = GLSL(330,
         finalColor.rgb = (texColor7.rgb == vec3(0.0)) ? finalColor.rgb : texColor7.rgb * phong;
 
         // Set the alpha value
-        finalColor.a = 1.0; // Or use a different alpha value if needed
+        //finalColor.a = 1.0; // Or use a different alpha value if needed
     }
 );
 
@@ -410,7 +410,7 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    const char* texFilename6 = "stb/tennis_ball.jpg";
+    const char* texFilename6 = "stb/tennis_ball2.jpg";
     if (!UCreateTexture(texFilename6, gTextureId5))
     {
         cout << "Failed to load texture " << texFilename6 << endl;
@@ -654,6 +654,7 @@ void URender()
     glUniform1f(specularIntensityLocation, specularIntensity);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, gTextureId1);
+    //glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 0.0f, 0.0f, 1.0f);
     model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(1).vao);
@@ -742,12 +743,34 @@ void URender()
     glDrawElements(GL_TRIANGLES, meshs.at(5).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    // draw tennis ball
-    specularIntensity = 0.2f;
+    // draw tennis ball by itself
+    specularIntensity = 0.0f;
     glUniform1f(specularIntensityLocation, specularIntensity);
     glActiveTexture(GL_TEXTURE5);
     glBindTexture(GL_TEXTURE_2D, gTextureId5);
-    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 3.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f));
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 3.0f)) * glm::scale(glm::vec3(1.1f, 1.1f, 1.1f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glBindVertexArray(meshs.at(6).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(6).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // draw tennis ball 1 for can
+    specularIntensity = 0.0f;
+    glUniform1f(specularIntensityLocation, specularIntensity);
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_2D, gTextureId5);
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, -3.0f)) * glm::scale(glm::vec3(1.1f, 1.1f, 1.1f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glBindVertexArray(meshs.at(6).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(6).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // draw tennis ball 2 for can
+    specularIntensity = 0.0f;
+    glUniform1f(specularIntensityLocation, specularIntensity);
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_2D, gTextureId5);
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 2.2f, -3.0f)) * glm::scale(glm::vec3(1.1f, 1.1f, 1.1f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(6).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(6).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle

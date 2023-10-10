@@ -152,7 +152,7 @@
     <Image Include="stb\gray_fabric3.jpg" />
     <Image Include="stb\green_felt.jpg" />
     <Image Include="stb\offwhite.jpg" />
-    <Image Include="stb\tennis_ball.jpg" />
+    <Image Include="stb\tennis_ball2.jpg" />
     <Image Include="stb\toy_pattern.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
