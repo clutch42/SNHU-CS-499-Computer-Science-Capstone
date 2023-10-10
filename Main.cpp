@@ -67,6 +67,8 @@ namespace
     const double torusDistFromCenter = 2.5;
     const double torusRadius = 0.5;
     const int torusSides = 30;
+    const double sphereRadius = 1;
+    const int sphereSides = 30;
     GLfloat prismTopVertex[(prismSides + 1) * 2 * 12];
     GLfloat prismSideVertex[(prismSides + 1) * 2 * 12];
     GLushort prismSideIndex[prismSides * 6];
@@ -84,7 +86,11 @@ namespace
 
     // variables for torus
     GLfloat torusVertex[(torusSides + 1) * (torusSides + 1) * 12];
-    GLushort torusIndex[6*torusSides*torusSides];
+    GLushort torusIndex[6*(torusSides)* (torusSides)];
+
+    // variables for sphere
+    GLfloat sphereVertex[12 * (sphereSides + 1) * (sphereSides + 1)];
+    GLushort sphereIndex[6 * sphereSides/2 * sphereSides];
 
     // camera positions
     glm::vec3 gCameraPos = glm::vec3(0.0f, 3.0f, 15.0f);
@@ -144,6 +150,8 @@ void GeneratePrismSideIndices();
 void GeneratePrismTopIndices();
 void GenerateTorusVertices();
 void GenerateTorusIndices();
+void GenerateSphereVertices();
+void GenerateSphereIndices();
 
 void UMousePositionCallback(GLFWwindow* window, double xpos, double ypos);
 void UMouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
@@ -317,6 +325,9 @@ int main(int argc, char* argv[])
     GenerateTorusVertices();
     GenerateTorusIndices();
 
+    GenerateSphereVertices();
+    GenerateSphereIndices();
+
     GLMesh cylinderTopMesh;
     cylinderTopMesh.vertsSize = sizeof(prismTopVertex);
     cylinderTopMesh.nIndices = sizeof(prismTopIndex) / sizeof(prismTopIndex[0]);
@@ -349,11 +360,15 @@ int main(int argc, char* argv[])
 
     GLMesh torusMesh;
     torusMesh.vertsSize = sizeof(torusVertex);
-    cout << "vertex:  " << torusMesh.vertsSize/sizeof(GLfloat) << endl;
     torusMesh.nIndices = sizeof(torusIndex) / sizeof(torusIndex[0]);
-    cout << "index:  " << torusMesh.nIndices << endl;
     UCreateMesh(torusMesh, torusVertex, torusIndex);
     meshs.push_back(torusMesh);
+
+    GLMesh sphereMesh;
+    sphereMesh.vertsSize = sizeof(sphereVertex);
+    sphereMesh.nIndices = sizeof(sphereIndex) / sizeof(sphereIndex[0]);
+    UCreateMesh(sphereMesh, sphereVertex, sphereIndex);
+    meshs.push_back(sphereMesh);
 
     // Create the shader program
     if (!UCreateShaderProgram(vertexShaderSource, fragmentShaderSource, gProgramId))
@@ -460,9 +475,12 @@ int main(int argc, char* argv[])
 
     // Release texture
     UDestroyTexture(gTextureId0);
-    // Release texture
     UDestroyTexture(gTextureId1);
     UDestroyTexture(gTextureId2);
+    UDestroyTexture(gTextureId3);
+    UDestroyTexture(gTextureId4);
+    UDestroyTexture(gTextureId5);
+    UDestroyTexture(gTextureId6);
 
     // Release shader program
     UDestroyShaderProgram(gProgramId);
@@ -722,6 +740,17 @@ void URender()
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(5).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(5).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // draw tennis ball
+    specularIntensity = 0.2f;
+    glUniform1f(specularIntensityLocation, specularIntensity);
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_2D, gTextureId5);
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 3.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glBindVertexArray(meshs.at(6).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(6).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // Deactivate the Vertex Array Object
@@ -1364,5 +1393,69 @@ void GenerateTorusIndices() {
 
     for (int i = 0; i < torusData.size(); i++) {
         torusIndex[i] = torusData[i];
+    }
+}
+
+void GenerateSphereVertices() {
+    vector<GLfloat> sphereData;
+    for (int i = 0; i < sphereSides + 1; ++i) {
+        GLfloat theta = 2.0f * M_PI * static_cast<float>(i) / (sphereSides/2);
+        for (int j = 0; j < sphereSides + 1; ++j) {
+            GLfloat phi =2.0f * M_PI * static_cast<float>(j) / sphereSides;
+
+            GLfloat x = sphereRadius * cos(theta) * cos(phi);
+            GLfloat y = sphereRadius * sin(theta) + sphereRadius;
+            GLfloat z = sphereRadius * cos(theta) * sin(phi);
+
+            // cout << "(" << x << ", " << y << ", " << z << ")\n";
+
+            sphereData.push_back(x);
+            sphereData.push_back(y);
+            sphereData.push_back(z);
+
+            // insert color (white)
+            sphereData.insert(sphereData.end(), { 1.0f, 1.0f, 1.0f, 1.0f });
+
+            // insert texture coord
+            sphereData.insert(sphereData.end(), { static_cast<float>(j) / sphereSides, static_cast<float>(i) / sphereSides });
+
+            // adding normals
+
+            GLfloat normalX = cos(theta) * cos(phi);
+            GLfloat normalY = sin(theta);
+            GLfloat normalZ = cos(theta) * sin(phi);
+
+            sphereData.insert(sphereData.end(), { normalX, normalY, normalZ });
+        }
+    }
+
+    for (int i = 0; i < sphereData.size(); i++) {
+        sphereVertex[i] = sphereData[i];
+    }
+}
+
+void GenerateSphereIndices() {
+    vector<GLfloat> sphereData;
+
+    for (int i = 0; i < sphereSides; ++i) {
+        for (int j = 0; j < sphereSides; ++j) {
+            int current = i * sphereSides + j;
+            int next = current + sphereSides + 1;
+
+            // Triangle 1
+            sphereData.push_back(current);
+            sphereData.push_back(next);
+            sphereData.push_back(next + 1);
+
+
+            // Triangle 2
+            sphereData.push_back(current);
+            sphereData.push_back(next + 1);
+            sphereData.push_back(current + 1);
+        }
+    }
+
+    for (int i = 0; i < sphereData.size(); i++) {
+        sphereIndex[i] = sphereData[i];
     }
 }
