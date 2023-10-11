@@ -112,8 +112,8 @@ namespace
     bool perspectiveProjection = true;
 
     // light color
-    glm::vec3 gLightColor(1.0f, 1.0f, 1.0f);
-    glm::vec3 gLightColor2(1.0f, 1.0f, 1.0f);
+    glm::vec3 gLightColor(1.0f, 0.839f, 0.667f); // sunlight
+    glm::vec3 gLightColor2(1.0f, 1.0f, 1.0f); // led light bulb
 
     // Light position
     glm::vec3 gLightPosition(0.0f, 5.0f, 40.0f);
@@ -717,7 +717,7 @@ void URender()
     glUniform1f(specularIntensityLocation, specularIntensity);
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, gTextureId3);
-    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(20.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(5.33f, 1.17f, 2.83f));
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(-0.5f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(-0.4f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(4.5f, 3.0f, 0.2f)) * glm::scale(glm::vec3(5.33f, 1.17f, 2.83f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(3).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(3).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
@@ -729,7 +729,7 @@ void URender()
     glUniform2fv(UVScaleLoc, 1, glm::value_ptr(gUVScale));
     glActiveTexture(GL_TEXTURE4);
     glBindTexture(GL_TEXTURE_2D, gTextureId4);
-    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(20.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(5.33f, 1.17f, 2.83f));
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(-0.5f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(-0.4f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(4.5f, 3.0f, 0.2f)) * glm::scale(glm::vec3(5.33f, 1.17f, 2.83f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(4).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(4).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
@@ -740,7 +740,7 @@ void URender()
     glUniform1f(specularIntensityLocation, specularIntensity);
     glActiveTexture(GL_TEXTURE6);
     glBindTexture(GL_TEXTURE_2D, gTextureId6);
-    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(-4.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.833f, 1.0f));
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(5.0f, 0.0f, 3.0f)) * glm::scale(glm::vec3(1.0f, 1.833f, 1.0f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(5).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(5).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
@@ -751,7 +751,7 @@ void URender()
     glUniform1f(specularIntensityLocation, specularIntensity);
     glActiveTexture(GL_TEXTURE5);
     glBindTexture(GL_TEXTURE_2D, gTextureId5);
-    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 3.0f)) * glm::scale(glm::vec3(1.1f, 1.1f, 1.1f));
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(-2.5f, 0.0f, 1.5f)) * glm::scale(glm::vec3(1.1f, 1.1f, 1.1f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(6).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(6).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
@@ -762,7 +762,7 @@ void URender()
     glUniform1f(specularIntensityLocation, specularIntensity);
     glActiveTexture(GL_TEXTURE5);
     glBindTexture(GL_TEXTURE_2D, gTextureId5);
-    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, -3.0f)) * glm::scale(glm::vec3(1.1f, 1.1f, 1.1f));
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(-0.5f, 0.0f, 3.5f)) * glm::scale(glm::vec3(1.1f, 1.1f, 1.1f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(6).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(6).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
@@ -774,7 +774,7 @@ void URender()
     glActiveTexture(GL_TEXTURE5);
     glBindTexture(GL_TEXTURE_2D, gTextureId5);
     //glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 0.0f, 1.0f, 0.0f, 0.2f);
-    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 2.2f, -3.0f)) * glm::scale(glm::vec3(1.1f, 1.1f, 1.1f));
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(-0.5f, 2.2f, 3.5f)) * glm::scale(glm::vec3(1.1f, 1.1f, 1.1f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(6).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(6).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
@@ -784,7 +784,7 @@ void URender()
     specularIntensity = 0.8f;
     glUniform1f(specularIntensityLocation, specularIntensity);
     glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 0.0f, 0.0f, 1.0f);
-    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 3.0f, 7.17f)) * glm::scale(glm::vec3(1.27f, 1.27f, 0.2f));
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(-0.5f, -3.5f, 7.17f)) * glm::scale(glm::vec3(1.27f, 1.2f, 0.2f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(1).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(1).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
@@ -794,7 +794,7 @@ void URender()
     specularIntensity = 0.8f;
     glUniform1f(specularIntensityLocation, specularIntensity);
     glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 0.0f, 0.0f, 1.0f);
-    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 3.0f, 7.17f)) * glm::scale(glm::vec3(1.27f, 1.27f, 0.2f));
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(-0.5f, -3.5f, 7.17f)) * glm::scale(glm::vec3(1.27f, 1.2f, 0.2f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(0).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
@@ -806,7 +806,7 @@ void URender()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 1.0f, 1.0f, 0.3f);
-    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 3.0f, 0.0f)) * glm::scale(glm::vec3(1.27f, 1.27f, 7.17f));
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(-0.5f, -3.5f, 0.0f)) * glm::scale(glm::vec3(1.27f, 1.2f, 7.17f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(1).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(1).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
