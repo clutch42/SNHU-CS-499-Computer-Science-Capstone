@@ -280,6 +280,7 @@ const GLchar* fragmentShaderSource = GLSL(330,
 
         // Use override color if provided, otherwise use base color
         finalColor.rgb = (overrideColor.a > 0.0) ? overrideColor.rgb * phong : vertexColor.rgb * phong;
+        //finalColor.a = (overrideColor.a > 0.0) ? overrideColor.a : 1.0;
 
         // Sample texture using texture coordinates if textureSampler is set
         vec4 texColor = texture(textureSampler, fragTexCoord * uvScale2);
@@ -301,6 +302,7 @@ const GLchar* fragmentShaderSource = GLSL(330,
 
         // Set the alpha value
         //finalColor.a = 1.0; // Or use a different alpha value if needed
+        finalColor.a = (overrideColor.a > 0.0) ? overrideColor.a : 1.0;
     }
 );
 
@@ -447,6 +449,7 @@ int main(int argc, char* argv[])
     // We set the texture as texture unit 6
     glUniform1i(glGetUniformLocation(gProgramId, "textureSampler7"), 6);
 
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // Sets the background color of the window to black (it will be implicitely used by glClear)
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -654,8 +657,8 @@ void URender()
     glUniform1f(specularIntensityLocation, specularIntensity);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, gTextureId1);
-    //glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 0.0f, 0.0f, 1.0f);
-    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
+    // glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 1.0f, 1.0f, 0.1f);
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(3.14f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(1.0f, 1.0f, 6.0f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(1).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(1).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
@@ -714,7 +717,7 @@ void URender()
     glUniform1f(specularIntensityLocation, specularIntensity);
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, gTextureId3);
-    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(4.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(5.33f, 1.17f, 2.83f));
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(20.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(5.33f, 1.17f, 2.83f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(3).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(3).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
@@ -726,7 +729,7 @@ void URender()
     glUniform2fv(UVScaleLoc, 1, glm::value_ptr(gUVScale));
     glActiveTexture(GL_TEXTURE4);
     glBindTexture(GL_TEXTURE_2D, gTextureId4);
-    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(4.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(5.33f, 1.17f, 2.83f));
+    model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(20.0f, 0.0f, 0.0f)) * glm::scale(glm::vec3(5.33f, 1.17f, 2.83f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(4).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(4).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
@@ -770,11 +773,45 @@ void URender()
     glUniform1f(specularIntensityLocation, specularIntensity);
     glActiveTexture(GL_TEXTURE5);
     glBindTexture(GL_TEXTURE_2D, gTextureId5);
+    //glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 0.0f, 1.0f, 0.0f, 0.2f);
     model = glm::rotate(0.0f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 2.2f, -3.0f)) * glm::scale(glm::vec3(1.1f, 1.1f, 1.1f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glBindVertexArray(meshs.at(6).vao);
     glDrawElements(GL_TRIANGLES, meshs.at(6).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    // draw red top of tennis ball can
+    specularIntensity = 0.8f;
+    glUniform1f(specularIntensityLocation, specularIntensity);
+    glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 0.0f, 0.0f, 1.0f);
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 3.0f, 7.17f)) * glm::scale(glm::vec3(1.27f, 1.27f, 0.2f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glBindVertexArray(meshs.at(1).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(1).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // draw red top of tennis ball can
+    specularIntensity = 0.8f;
+    glUniform1f(specularIntensityLocation, specularIntensity);
+    glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 0.0f, 0.0f, 1.0f);
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 3.0f, 7.17f)) * glm::scale(glm::vec3(1.27f, 1.27f, 0.2f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glBindVertexArray(meshs.at(0).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(0).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // draw transparent body of tennis ball can
+    specularIntensity = 0.8f;
+    glUniform1f(specularIntensityLocation, specularIntensity);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glUniform4f(glGetUniformLocation(gProgramId, "overrideColor"), 1.0f, 1.0f, 1.0f, 0.3f);
+    model = glm::rotate(-1.57f, glm::vec3(1.0, 0.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 1.0f, 0.0f)) * glm::rotate(0.0f, glm::vec3(0.0, 0.0f, 1.0f)) * glm::translate(glm::vec3(0.0f, 3.0f, 0.0f)) * glm::scale(glm::vec3(1.27f, 1.27f, 7.17f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glBindVertexArray(meshs.at(1).vao);
+    glDrawElements(GL_TRIANGLES, meshs.at(1).nIndices, GL_UNSIGNED_SHORT, NULL); // Draws the triangle
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_BLEND);
 
     // Deactivate the Vertex Array Object
     glBindVertexArray(0);
