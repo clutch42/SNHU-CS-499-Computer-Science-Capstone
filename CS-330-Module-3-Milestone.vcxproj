@@ -24,6 +24,7 @@
     <ProjectGuid>{84018f33-a1dd-41ee-9ff4-05fef4674c69}</ProjectGuid>
     <RootNamespace>CS330Module3Milestone</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>CS-330-Project</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

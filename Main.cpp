@@ -63,10 +63,10 @@ namespace
     // variables for prism
     const int prismRad = 1;
     const int prismHeight = 1;
-    const int prismSides = 30;
+    const int prismSides = 20;
     const double torusDistFromCenter = 2.5;
     const double torusRadius = 0.5;
-    const int torusSides = 30;
+    const int torusSides = 20;
     const double sphereRadius = 1;
     const int sphereSides = 30;
     GLfloat prismTopVertex[(prismSides + 1) * 2 * 12];
@@ -113,7 +113,7 @@ namespace
 
     // light color
     glm::vec3 gLightColor(1.0f, 0.839f, 0.667f); // sunlight
-    glm::vec3 gLightColor2(1.0f, 1.0f, 1.0f); // led light bulb
+    glm::vec3 gLightColor2(1.0f, 0.0f, 0.0f); // led light bulb
 
     // Light position
     glm::vec3 gLightPosition(0.0f, 5.0f, 40.0f);
